@@ -1,0 +1,15 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Meshtastic UI",
+        "description": "This integration adds a unified dashboard for your Meshtastic mesh network. The Meshtastic integration must be installed and configured first.",
+        "data": {}
+      }
+    },
+    "abort": {
+      "already_configured": "Meshtastic UI is already configured.",
+      "meshtastic_not_found": "The Meshtastic integration is not installed or has no configured entries. Please set up the Meshtastic integration first."
+    }
+  }
+}
