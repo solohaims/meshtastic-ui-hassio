@@ -28,8 +28,10 @@ async def async_register_panel(hass: HomeAssistant) -> None:
     )
 
     # Remove stale panel from a previous (possibly failed) setup
-    if PANEL_URL in hass.data.get("frontend_panels", {}):
+    try:
         async_remove_panel(hass, PANEL_URL)
+    except KeyError:
+        pass
 
     async_register_built_in_panel(
         hass,
