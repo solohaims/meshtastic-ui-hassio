@@ -165,9 +165,9 @@ async def _async_scan_nodes(hass: HomeAssistant, store: MeshtasticUiStore) -> No
 
     for device in dev_reg.devices.values():
         node_id = None
-        for domain, identifier in device.identifiers:
-            if domain == "meshtastic":
-                node_id = identifier
+        for ident in device.identifiers:
+            if ident[0] == "meshtastic":
+                node_id = ident[1] if len(ident) > 1 else None
                 break
 
         if node_id is None:
