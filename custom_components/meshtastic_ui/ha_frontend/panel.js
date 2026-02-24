@@ -283,6 +283,10 @@ class MeshtasticUiPanel extends LitElement {
         box-sizing: border-box;
       }
 
+      .content.hidden {
+        display: none;
+      }
+
       /* Radio tab */
       .iframe-container {
         width: 100%;
@@ -518,14 +522,18 @@ class MeshtasticUiPanel extends LitElement {
           `
         )}
       </div>
-      <div class="content">${this._renderTab()}</div>
+      <!-- Radio iframe is always rendered but hidden to preserve connection -->
+      <div class="content radio-content ${this._activeTab === "radio" ? "" : "hidden"}">
+        ${this._renderRadioTab()}
+      </div>
+      <div class="content ${this._activeTab !== "radio" ? "" : "hidden"}">
+        ${this._renderActiveTab()}
+      </div>
     `;
   }
 
-  _renderTab() {
+  _renderActiveTab() {
     switch (this._activeTab) {
-      case "radio":
-        return this._renderRadioTab();
       case "messages":
         return this._renderMessagesTab();
       case "nodes":
