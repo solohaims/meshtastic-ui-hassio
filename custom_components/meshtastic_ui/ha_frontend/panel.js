@@ -829,9 +829,13 @@ class MeshtasticUiPanel extends LitElement {
             </div>
             <div class="notification-field">
               <label>Notify Service</label>
-              <input type="text" .value=${p.service || ""}
-                placeholder="notify.mobile_app_phone"
-                @input=${(e) => { this._notificationPrefs = { ...this._notificationPrefs, service: e.target.value }; }} />
+              <select .value=${p.service || "notify.notify"}
+                @change=${(e) => { this._notificationPrefs = { ...this._notificationPrefs, service: e.target.value }; }}>
+                ${Object.keys(this.hass?.services?.notify || {}).map((svc) => {
+                  const val = `notify.${svc}`;
+                  return html`<option value=${val} ?selected=${p.service === val}>${val}</option>`;
+                })}
+              </select>
             </div>
             <div class="notification-field">
               <label>Message Filter</label>
