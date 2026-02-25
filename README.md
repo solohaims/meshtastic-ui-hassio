@@ -4,6 +4,11 @@
 
 A companion HACS integration that adds a full-featured dashboard for your [Meshtastic](https://meshtastic.org) mesh network in Home Assistant. Connects directly to your radio via TCP, Serial, or Bluetooth and provides messaging, node management, mapping, and complete radio configuration — all from the HA sidebar.
 
+## Built With
+
+- **Backend** — Python, using the [meshtastic](https://pypi.org/project/meshtastic/) library for all radio communication (TCP, Serial, BLE). Integrates with Home Assistant via its WebSocket API and async event system.
+- **Frontend** — Vanilla ES modules built with [Lit](https://lit.dev/) 4.x web components, [Leaflet](https://leafletjs.com/) for mapping, and [D3](https://d3js.org/) for real-time charts. No build step — served directly by Home Assistant.
+
 ## Why Connect a Radio to Home Assistant?
 
 A Meshtastic node plugged into your Home Assistant server becomes an **always-on gateway** to your mesh network. Unlike a phone or laptop that goes to sleep, a home server runs 24/7 — so your node never misses a message.
