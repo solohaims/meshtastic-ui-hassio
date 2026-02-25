@@ -230,7 +230,6 @@ export class MeshRadioTab extends LitElement {
             .data=${ts.channelUtil}
             label="Channel Utilization"
             colorScheme="Blues"
-            .maxValue=${100}
             unit="%"
             .bucketInterval=${10}
           ></mesh-horizon-chart>
@@ -238,7 +237,6 @@ export class MeshRadioTab extends LitElement {
             .data=${ts.airtimeTx}
             label="Airtime TX"
             colorScheme="Oranges"
-            .maxValue=${100}
             unit="%"
             .bucketInterval=${10}
           ></mesh-horizon-chart>
@@ -1891,7 +1889,15 @@ class MeshHorizonChart extends LitElement {
     const d3 = window.d3;
     const arr = this.data;
     const len = arr.length;
-    const max = this.maxValue > 0 ? this.maxValue : d3.max(arr) || 1;
+    let max;
+    if (this.maxValue > 0) {
+      max = this.maxValue;
+    } else {
+      // Auto-scale: round up to a nice value for readable Y-axis ticks
+      const dataMax = d3.max(arr) || 1;
+      const niceSteps = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500, 1000];
+      max = niceSteps.find((s) => s >= dataMax * 1.15) || Math.ceil(dataMax * 1.15);
+    }
     const bandH = h / this.bands;
     // Bar width: fill available space but clamp between 2–50px
     const rawColW = w / len;
