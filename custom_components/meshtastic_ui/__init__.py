@@ -265,6 +265,16 @@ def _register_radio_callbacks(
         if portnum == "WAYPOINT_APP":
             _handle_waypoint(hass, store, packet)
 
+        # Capture LocalStats from our own telemetry
+        if portnum == "TELEMETRY_APP":
+            telemetry = decoded.get("telemetry", {})
+            local_stats = telemetry.get("localStats")
+            if local_stats and ts:
+                local_num = ts.get("local_node_num")
+                sender_num = packet.get("from")
+                if local_num and sender_num == local_num:
+                    hass.data[DOMAIN]["local_stats"] = local_stats
+
         # Track sender as a node
         sender_id = packet.get("fromId")
         if sender_id:

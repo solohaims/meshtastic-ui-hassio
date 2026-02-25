@@ -130,6 +130,17 @@ async def ws_gateways(
     if device_metrics.get("uptimeSeconds") is not None:
         sensors["uptime"] = device_metrics["uptimeSeconds"]
 
+    # Packet counters from LocalStats telemetry
+    local_stats = hass.data.get(DOMAIN, {}).get("local_stats", {})
+    if local_stats.get("numPacketsTx") is not None:
+        sensors["packets_tx"] = local_stats["numPacketsTx"]
+    if local_stats.get("numPacketsRx") is not None:
+        sensors["packets_rx"] = local_stats["numPacketsRx"]
+    if local_stats.get("numPacketsRxBad") is not None:
+        sensors["packets_bad"] = local_stats["numPacketsRxBad"]
+    if local_stats.get("numTxRelay") is not None:
+        sensors["packets_relayed"] = local_stats["numTxRelay"]
+
     # Channel list from the interface
     if iface is not None:
         try:
