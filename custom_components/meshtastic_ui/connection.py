@@ -16,6 +16,63 @@ MIN_RECONNECT_DELAY = 5
 MAX_RECONNECT_DELAY = 300  # 5 minutes
 
 
+def _apply_protobuf_values(
+    proto_obj: Any, values: dict[str, Any], context: str = ""
+) -> None:
+    """Recursively apply dict values to a protobuf message object.
+
+    Handles nested sub-messages (dicts) and repeated fields (lists)
+    that can't be assigned directly via setattr.
+    """
+    from google.protobuf.descriptor import FieldDescriptor
+
+    descriptor = proto_obj.DESCRIPTOR
+    field_map = {f.name: f for f in descriptor.fields}
+
+    for key, value in values.items():
+        if key not in field_map:
+            if hasattr(proto_obj, key):
+                # Field exists on the object but not in descriptor (oneof, etc.)
+                try:
+                    setattr(proto_obj, key, value)
+                except (AttributeError, TypeError):
+                    _LOGGER.warning(
+                        "Cannot set field '%s' in %s", key, context or "config"
+                    )
+            else:
+                _LOGGER.warning(
+                    "Unknown config field '%s' in '%s'", key, context or "config"
+                )
+            continue
+
+        field = field_map[key]
+
+        if field.message_type is not None and field.label != FieldDescriptor.LABEL_REPEATED:
+            # Nested sub-message — recurse into it
+            if isinstance(value, dict):
+                sub_msg = getattr(proto_obj, key)
+                _apply_protobuf_values(sub_msg, value, f"{context}.{key}")
+            else:
+                _LOGGER.warning(
+                    "Expected dict for sub-message field '%s' in '%s', got %s",
+                    key, context or "config", type(value).__name__,
+                )
+        elif field.label == FieldDescriptor.LABEL_REPEATED:
+            # Repeated field — clear and extend
+            repeated = getattr(proto_obj, key)
+            del repeated[:]
+            if isinstance(value, (list, tuple)):
+                repeated.extend(value)
+        else:
+            # Scalar field — direct assignment
+            try:
+                setattr(proto_obj, key, value)
+            except (AttributeError, TypeError) as err:
+                _LOGGER.warning(
+                    "Cannot set field '%s' in '%s': %s", key, context or "config", err
+                )
+
+
 class ConnectionType(enum.StrEnum):
     """Radio connection types."""
 
@@ -290,14 +347,7 @@ class MeshtasticConnection:
             if config_obj is None:
                 raise ValueError(f"Config section '{section}' not found on node")
 
-            for key, value in values.items():
-                if hasattr(config_obj, key):
-                    setattr(config_obj, key, value)
-                else:
-                    _LOGGER.warning(
-                        "Unknown config field '%s' in section '%s'", key, section
-                    )
-
+            _apply_protobuf_values(config_obj, values, section)
             node.writeConfig(section)
 
         await self._hass.async_add_executor_job(_write)
