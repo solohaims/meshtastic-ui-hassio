@@ -135,9 +135,9 @@ class MeshtasticUiPanel extends LitElement {
         if (gw.node_id) this._localNodeId = gw.node_id;
         // Seed time-series snapshots from gateway sensors so charts show data immediately
         const s = gw.sensors || {};
-        if (s.channel_utilization != null) this._tsSnapshots.channelUtil = s.channel_utilization;
-        if (s.air_util_tx != null) this._tsSnapshots.airtimeTx = s.air_util_tx;
-        if (s.battery != null) this._tsSnapshots.battery = Math.min(s.battery, 100);
+        if (s.channel_utilization != null) { this._tsSnapshots.channelUtil = s.channel_utilization; this._tsSnapshotDirty.channelUtil = true; }
+        if (s.air_util_tx != null) { this._tsSnapshots.airtimeTx = s.air_util_tx; this._tsSnapshotDirty.airtimeTx = true; }
+        if (s.battery != null) { this._tsSnapshots.battery = Math.min(s.battery, 100); this._tsSnapshotDirty.battery = true; }
       }
     }
   }
