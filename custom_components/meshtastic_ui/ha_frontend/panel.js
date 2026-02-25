@@ -2,7 +2,7 @@ import {
   LitElement,
   html,
   css,
-} from "https://unpkg.com/lit-element@4.1.1/lit-element.js?module";
+} from "./vendor/lit/lit-element.js";
 
 /* ── Import tab components ── */
 import "./views.js";
@@ -97,14 +97,28 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   updated(changed) {
-    if (changed.has("hass") && this.hass && !this._unsubscribeFn) {
-      // hass wasn't available during connectedCallback — retry
-      this._loadData();
+    if (changed.has("hass") && this.hass) {
+      const conn = this.hass.connection;
+      if (this._prevConnection && this._prevConnection !== conn) {
+        // Connection was replaced (reconnect) — re-subscribe
+        this._unsubscribeFn = null;
+        this._unsubNodesFn = null;
+        this._unsubDeliveryFn = null;
+        this._unsubWaypointsFn = null;
+        this._unsubTraceroutesFn = null;
+        this._subscribe();
+      }
+      this._prevConnection = conn;
+      if (!this._unsubscribeFn) {
+        // hass wasn't available during connectedCallback — retry
+        this._loadData();
+      }
     }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this._unsubscribe();
     if (this._tsPollingId) {
       clearInterval(this._tsPollingId);
       this._tsPollingId = null;
@@ -461,6 +475,13 @@ class MeshtasticUiPanel extends LitElement {
     }
   }
 
+  async _onWaypointCreate(e) {
+    const { latitude, longitude, name, description, expire } = e.detail;
+    await this._wsCommand("meshtastic_ui/send_waypoint", {
+      latitude, longitude, name, description, expire,
+    });
+  }
+
   /* ── Styles ── */
 
   static get styles() {
@@ -775,7 +796,7 @@ class MeshtasticUiPanel extends LitElement {
           ></mesh-nodes-tab>
         `;
       case "map":
-        return html`<mesh-map-tab .nodes=${this._nodes} .waypoints=${this._waypoints} .traceroutes=${this._traceroutes} .localNodeId=${this._localNodeId} @node-action=${this._onNodeAction}></mesh-map-tab>`;
+        return html`<mesh-map-tab .nodes=${this._nodes} .waypoints=${this._waypoints} .traceroutes=${this._traceroutes} .localNodeId=${this._localNodeId} @node-action=${this._onNodeAction} @waypoint-create=${this._onWaypointCreate}></mesh-map-tab>`;
       case "settings":
         return html`
           <mesh-settings-tab

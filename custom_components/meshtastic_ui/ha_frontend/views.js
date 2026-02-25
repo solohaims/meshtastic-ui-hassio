@@ -2,7 +2,7 @@ import {
   LitElement,
   html,
   css,
-} from "https://unpkg.com/lit-element@4.1.1/lit-element.js?module";
+} from "./vendor/lit/lit-element.js";
 
 /* ══════════════════════════════════════════════════════════
    Shared helpers
@@ -1276,6 +1276,7 @@ export class MeshMapTab extends LitElement {
       waypoints: { type: Object },
       traceroutes: { type: Object },
       localNodeId: { type: String },
+      _waypointDialog: { type: Object },
     };
   }
 
@@ -1297,6 +1298,9 @@ export class MeshMapTab extends LitElement {
     this._showSnrLines = false;
     this._showTraceroutes = false;
     this._tracerouteDialogData = null;
+    this._waypointDialog = null;
+    this._userLocationMarker = null;
+    this._userLocationCircle = null;
   }
 
   static get styles() {
@@ -1388,6 +1392,56 @@ export class MeshMapTab extends LitElement {
         .link-snr-values { display: flex; gap: 12px; font-size: 12px; }
         .snr-fwd { color: #4caf50; }
         .snr-ret { color: #2196f3; }
+
+        .wp-form { display: flex; flex-direction: column; gap: 12px; }
+        .wp-coords {
+          font-size: 13px; color: var(--secondary-text-color);
+          padding: 8px 12px; border-radius: 8px;
+          background: var(--secondary-background-color);
+          font-family: monospace;
+        }
+        .wp-form label {
+          font-size: 12px; font-weight: 600;
+          color: var(--secondary-text-color);
+        }
+        .wp-form input {
+          width: 100%; padding: 8px 12px; border-radius: 8px;
+          border: 1px solid var(--divider-color);
+          background: var(--card-background-color);
+          color: var(--primary-text-color);
+          font-size: 14px; box-sizing: border-box;
+        }
+        .wp-form input:focus {
+          outline: none; border-color: var(--primary-color);
+        }
+        .wp-actions {
+          display: flex; gap: 8px; justify-content: flex-end;
+          margin-top: 4px;
+        }
+        .wp-actions button {
+          padding: 8px 20px; border-radius: 8px; font-size: 14px;
+          font-weight: 600; cursor: pointer; border: none;
+        }
+        .wp-actions .cancel {
+          background: var(--secondary-background-color);
+          color: var(--primary-text-color);
+        }
+        .wp-actions .submit {
+          background: var(--primary-color);
+          color: var(--text-primary-color);
+        }
+        .wp-actions .submit:disabled {
+          opacity: 0.5; cursor: not-allowed;
+        }
+
+        .locate-btn {
+          padding: 5px 10px; border-radius: 6px; font-size: 11px;
+          font-weight: 600; cursor: pointer; border: 1px solid var(--divider-color);
+          background: var(--card-background-color); color: var(--secondary-text-color);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.15s;
+          display: flex; align-items: center; gap: 4px;
+        }
+        .locate-btn:hover { opacity: 0.85; }
       `,
     ];
   }
@@ -1466,12 +1520,16 @@ export class MeshMapTab extends LitElement {
             @click=${() => this._toggleLayer("snr")}>SNR Lines${snrCount > 0 ? ` (${snrCount})` : ""}</button>
           <button class="layer-btn ${this._showTraceroutes ? "active" : ""}"
             @click=${() => this._toggleLayer("traceroutes")}>Routes${routeCount > 0 ? ` (${routeCount})` : ""}</button>
+          <button class="locate-btn" @click=${() => this._locateUser()} title="Find my location">
+            \u25CE Locate
+          </button>
         </div>
         ${nodesWithout > 0 ? html`
           <div class="map-info-badge">${nodesWithout} node${nodesWithout !== 1 ? "s" : ""} without position</div>
         ` : ""}
       </div>
       ${this._tracerouteDialogData ? this._renderTracerouteDialog() : ""}
+      ${this._waypointDialog ? this._renderWaypointDialog() : ""}
     `;
   }
 
@@ -1543,6 +1601,63 @@ export class MeshMapTab extends LitElement {
     `;
   }
 
+  _renderWaypointDialog() {
+    const { lat, lon } = this._waypointDialog;
+    return html`
+      <div class="traceroute-dialog" @click=${(e) => { if (e.target.classList.contains("traceroute-dialog")) { this._waypointDialog = null; } }}>
+        <div class="traceroute-card">
+          <div class="traceroute-header">
+            <div class="title">Create Waypoint</div>
+            <button class="close" @click=${() => { this._waypointDialog = null; }}>&times;</button>
+          </div>
+          <div class="traceroute-body">
+            <div class="wp-form">
+              <div class="wp-coords">${lat.toFixed(6)}, ${lon.toFixed(6)}</div>
+              <div>
+                <label>Name *</label>
+                <input id="wp-name" type="text" placeholder="Waypoint name" maxlength="30" />
+              </div>
+              <div>
+                <label>Description</label>
+                <input id="wp-desc" type="text" placeholder="Optional description" maxlength="100" />
+              </div>
+              <div>
+                <label>Expire (hours, 0 = never)</label>
+                <input id="wp-expire" type="number" min="0" value="0" />
+              </div>
+              <div class="wp-actions">
+                <button class="cancel" @click=${() => { this._waypointDialog = null; }}>Cancel</button>
+                <button class="submit" @click=${() => this._submitWaypoint()}>Broadcast to Mesh</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _submitWaypoint() {
+    const nameEl = this.shadowRoot.querySelector("#wp-name");
+    const descEl = this.shadowRoot.querySelector("#wp-desc");
+    const expireEl = this.shadowRoot.querySelector("#wp-expire");
+    const name = nameEl?.value?.trim();
+    if (!name) { nameEl?.focus(); return; }
+    const description = descEl?.value?.trim() || "";
+    const hours = parseInt(expireEl?.value) || 0;
+    const expire = hours > 0 ? Math.floor(Date.now() / 1000) + hours * 3600 : 0;
+    const { lat, lon } = this._waypointDialog;
+    this.dispatchEvent(new CustomEvent("waypoint-create", {
+      detail: { latitude: lat, longitude: lon, name, description, expire },
+      bubbles: true, composed: true,
+    }));
+    this._waypointDialog = null;
+  }
+
+  _locateUser() {
+    if (!this._mapInstance) return;
+    this._mapInstance.locate({ setView: true, maxZoom: 16 });
+  }
+
   _getNodeName(nodeId) {
     if (!nodeId) return "Unknown";
     const node = this.nodes?.[nodeId];
@@ -1590,13 +1705,13 @@ export class MeshMapTab extends LitElement {
     try {
       const linkEl = document.createElement("link");
       linkEl.rel = "stylesheet";
-      linkEl.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      linkEl.href = import.meta.url.replace(/\/[^/]+$/, "/vendor/leaflet/leaflet.css");
       this.shadowRoot.appendChild(linkEl);
 
       if (!window.L) {
         await new Promise((resolve, reject) => {
           const script = document.createElement("script");
-          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+          script.src = import.meta.url.replace(/\/[^/]+$/, "/vendor/leaflet/leaflet.js");
           script.onload = resolve;
           script.onerror = reject;
           document.head.appendChild(script);
@@ -1633,6 +1748,29 @@ export class MeshMapTab extends LitElement {
     this._waypointLayer = L.layerGroup().addTo(map);
     this._snrLineLayer = L.layerGroup();
     this._tracerouteLayer = L.layerGroup();
+
+    map.on("click", (e) => {
+      this._waypointDialog = { lat: e.latlng.lat, lon: e.latlng.lng };
+      this.requestUpdate();
+    });
+
+    map.on("locationfound", (e) => {
+      const { lat, lng } = e.latlng;
+      const radius = e.accuracy;
+      if (this._userLocationMarker) {
+        this._userLocationMarker.setLatLng([lat, lng]);
+        this._userLocationCircle.setLatLng([lat, lng]).setRadius(radius);
+      } else {
+        this._userLocationMarker = L.circleMarker([lat, lng], {
+          radius: 8, fillColor: "#4285f4", fillOpacity: 1,
+          color: "#fff", weight: 3,
+        }).addTo(map);
+        this._userLocationCircle = L.circle([lat, lng], {
+          radius, color: "#4285f4", fillColor: "#4285f4",
+          fillOpacity: 0.15, weight: 1,
+        }).addTo(map);
+      }
+    });
 
     this._updateNodeLayer();
     this._updateWaypointLayer();
@@ -1691,13 +1829,25 @@ export class MeshMapTab extends LitElement {
       if (isNaN(lat) || isNaN(lon)) continue;
 
       const name = wp.name || `Waypoint ${wpId}`;
-      const popup = `
-        <div style="min-width:140px;">
-          <strong>${name}</strong>
-          ${wp.description ? `<div style="font-size:12px;margin-top:4px;">${wp.description}</div>` : ""}
-          ${wp.from ? `<div style="font-size:11px;color:#888;margin-top:4px;">From: ${wp.from}</div>` : ""}
-        </div>
-      `;
+
+      // Build popup with DOM APIs to prevent XSS from waypoint data
+      const popupDiv = document.createElement("div");
+      popupDiv.style.minWidth = "140px";
+      const strong = document.createElement("strong");
+      strong.textContent = name;
+      popupDiv.appendChild(strong);
+      if (wp.description) {
+        const desc = document.createElement("div");
+        desc.style.cssText = "font-size:12px;margin-top:4px;";
+        desc.textContent = wp.description;
+        popupDiv.appendChild(desc);
+      }
+      if (wp.from) {
+        const from = document.createElement("div");
+        from.style.cssText = "font-size:11px;color:#888;margin-top:4px;";
+        from.textContent = `From: ${wp.from}`;
+        popupDiv.appendChild(from);
+      }
 
       // Diamond-shaped marker for waypoints
       const marker = L.circleMarker([lat, lon], {
@@ -1707,7 +1857,7 @@ export class MeshMapTab extends LitElement {
         color: "#fff",
         weight: 2,
       });
-      marker.bindPopup(popup);
+      marker.bindPopup(popupDiv);
       marker.bindTooltip(name, { permanent: false, direction: "top", offset: [0, -10] });
       this._waypointLayer.addLayer(marker);
     }
@@ -1824,6 +1974,8 @@ export class MeshMapTab extends LitElement {
       this._waypointLayer = null;
       this._snrLineLayer = null;
       this._tracerouteLayer = null;
+      this._userLocationMarker = null;
+      this._userLocationCircle = null;
     }
   }
 
@@ -1845,7 +1997,7 @@ function loadD3() {
   if (_d3Promise) return _d3Promise;
   _d3Promise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://unpkg.com/d3@7/dist/d3.min.js";
+    script.src = import.meta.url.replace(/\/[^/]+$/, "/vendor/d3/d3.min.js");
     script.onload = resolve;
     script.onerror = reject;
     document.head.appendChild(script);
@@ -2236,11 +2388,14 @@ class MeshPacketTreemap extends LitElement {
     }
 
     // Clear previous
-    container.innerHTML = "";
+    while (container.firstChild) container.removeChild(container.firstChild);
 
     if (children.length === 0) {
       container.style.height = `${h}px`;
-      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--secondary-text-color);font-size:13px;">No packets received yet</div>`;
+      const empty = document.createElement("div");
+      empty.style.cssText = "display:flex;align-items:center;justify-content:center;height:100%;color:var(--secondary-text-color);font-size:13px;";
+      empty.textContent = "No packets received yet";
+      container.appendChild(empty);
       return;
     }
 
@@ -2287,8 +2442,15 @@ class MeshPacketTreemap extends LitElement {
       el.addEventListener("mouseleave", () => { this._tooltip = null; });
 
       if (lw > 50 && lh > 24) {
-        el.innerHTML = `<strong>${d.label}</strong>`;
-        if (lh > 40) el.innerHTML += `<span style="font-size:${lw < 60 ? 8 : 10}px;opacity:0.9">${d.total} (${pct}%)</span>`;
+        const labelEl = document.createElement("strong");
+        labelEl.textContent = d.label;
+        el.appendChild(labelEl);
+        if (lh > 40) {
+          const spanEl = document.createElement("span");
+          spanEl.style.cssText = `font-size:${lw < 60 ? 8 : 10}px;opacity:0.9`;
+          spanEl.textContent = `${d.total} (${pct}%)`;
+          el.appendChild(spanEl);
+        }
       }
 
       container.appendChild(el);
