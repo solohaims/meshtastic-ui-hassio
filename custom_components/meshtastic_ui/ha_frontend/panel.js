@@ -76,7 +76,6 @@ class MeshtasticUiPanel extends LitElement {
     this._timeSeries = this._restoreTimeSeries();
     this._tsAccumulators = { packetRx: 0, packetTx: 0 };
     this._tsSnapshots = { channelUtil: 0, airtimeTx: 0, battery: 0 };
-    this._tsSnapshotDirty = { channelUtil: false, airtimeTx: false, battery: false };
     this._tsIntervalId = null;
     this._unsubscribeFn = null;
     this._unsubNodesFn = null;
@@ -142,9 +141,9 @@ class MeshtasticUiPanel extends LitElement {
         if (gw.node_id) this._localNodeId = gw.node_id;
         // Seed time-series snapshots from gateway sensors so charts show data immediately
         const s = gw.sensors || {};
-        if (s.channel_utilization != null) { this._tsSnapshots.channelUtil = s.channel_utilization; this._tsSnapshotDirty.channelUtil = true; }
-        if (s.air_util_tx != null) { this._tsSnapshots.airtimeTx = s.air_util_tx; this._tsSnapshotDirty.airtimeTx = true; }
-        if (s.battery != null) { this._tsSnapshots.battery = Math.min(s.battery, 100); this._tsSnapshotDirty.battery = true; }
+        if (s.channel_utilization != null) this._tsSnapshots.channelUtil = s.channel_utilization;
+        if (s.air_util_tx != null) this._tsSnapshots.airtimeTx = s.air_util_tx;
+        if (s.battery != null) this._tsSnapshots.battery = Math.min(s.battery, 100);
       }
     }
   }
@@ -235,13 +234,11 @@ class MeshtasticUiPanel extends LitElement {
     for (const key of Object.keys(ts)) {
       ts[key].copyWithin(0, 1);
     }
-    // Snapshot values — only record when new telemetry has arrived
-    const dirty = this._tsSnapshotDirty;
+    // Snapshot values (latest telemetry, held until next update)
     const last = TS_POINTS - 1;
-    ts.channelUtil[last] = dirty.channelUtil ? snap.channelUtil : 0;
-    ts.airtimeTx[last] = dirty.airtimeTx ? snap.airtimeTx : 0;
-    ts.battery[last] = dirty.battery ? snap.battery : 0;
-    this._tsSnapshotDirty = { channelUtil: false, airtimeTx: false, battery: false };
+    ts.channelUtil[last] = snap.channelUtil;
+    ts.airtimeTx[last] = snap.airtimeTx;
+    ts.battery[last] = snap.battery;
     // Counter values (reset each flush)
     ts.packetTx[last] = acc.packetTx;
     ts.packetRx[last] = acc.packetRx;
@@ -357,9 +354,9 @@ class MeshtasticUiPanel extends LitElement {
     if (!node_id) return;
     // Capture telemetry snapshots from the local (gateway) node
     if (node_id === this._localNodeId && data) {
-      if (data.channel_utilization != null) { this._tsSnapshots.channelUtil = data.channel_utilization; this._tsSnapshotDirty.channelUtil = true; }
-      if (data.air_util_tx != null) { this._tsSnapshots.airtimeTx = data.air_util_tx; this._tsSnapshotDirty.airtimeTx = true; }
-      if (data.battery != null) { this._tsSnapshots.battery = data.battery; this._tsSnapshotDirty.battery = true; }
+      if (data.channel_utilization != null) this._tsSnapshots.channelUtil = data.channel_utilization;
+      if (data.air_util_tx != null) this._tsSnapshots.airtimeTx = data.air_util_tx;
+      if (data.battery != null) this._tsSnapshots.battery = data.battery;
     }
     this._nodes = {
       ...this._nodes,
