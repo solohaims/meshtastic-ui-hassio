@@ -8,6 +8,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .connection import ConnectionState, ConnectionType, MeshtasticConnection
@@ -33,6 +34,8 @@ from .websocket_api import async_register_websocket_api
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor"]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
