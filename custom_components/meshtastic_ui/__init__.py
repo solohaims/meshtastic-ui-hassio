@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from collections import deque
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_track_time_interval
 
 from .connection import ConnectionState, ConnectionType, MeshtasticConnection
 from .const import (
@@ -26,10 +28,14 @@ from .const import (
     SIGNAL_NODE_UPDATE,
     SIGNAL_TRACEROUTE_RESULT,
     SIGNAL_WAYPOINT_UPDATE,
+    TS_FLUSH_SECONDS,
+    TS_POINTS,
 )
 from .frontend import async_register_panel, async_unregister_panel
 from .store import MeshtasticUiStore, normalize_node_id
 from .websocket_api import async_register_websocket_api
+
+_TS_SERIES_KEYS = ("channelUtil", "airtimeTx", "battery", "packetTx", "packetRx")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,6 +63,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "connection": connection,
         "unsub_callbacks": [],
         "pending_acks": {},  # packet_id -> message info for delivery tracking
+        "ts": {
+            "data": {k: deque([0.0] * TS_POINTS, maxlen=TS_POINTS) for k in _TS_SERIES_KEYS},
+            "snapshots": {"channelUtil": 0.0, "airtimeTx": 0.0, "battery": 0.0},
+            "accumulators": {"packetTx": 0, "packetRx": 0},
+            "local_node_num": None,
+        },
     }
 
     # Register radio callbacks
@@ -68,8 +80,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:  # noqa: BLE001
         _LOGGER.error("Initial connection to Meshtastic radio failed; will retry")
 
-    # Sync nodes from radio's mesh database
-    _sync_nodes_from_radio(store, connection)
+    # Sync nodes from radio's mesh database and seed time-series snapshots
+    _sync_nodes_from_radio(hass, store, connection)
+
+    # Start time-series flush timer (runs regardless of frontend connections)
+    @callback
+    def _flush_timeseries(_now: Any) -> None:
+        ts = hass.data.get(DOMAIN, {}).get("ts")
+        if ts is None:
+            return
+        data = ts["data"]
+        snap = ts["snapshots"]
+        acc = ts["accumulators"]
+        data["channelUtil"].append(snap["channelUtil"])
+        data["airtimeTx"].append(snap["airtimeTx"])
+        data["battery"].append(snap["battery"])
+        data["packetTx"].append(acc["packetTx"])
+        data["packetRx"].append(acc["packetRx"])
+        ts["accumulators"] = {"packetTx": 0, "packetRx": 0}
+
+    unsub_ts = async_track_time_interval(
+        hass, _flush_timeseries, timedelta(seconds=TS_FLUSH_SECONDS)
+    )
+    hass.data[DOMAIN]["unsub_callbacks"].append(unsub_ts)
 
     # Register WebSocket API
     async_register_websocket_api(hass)
@@ -151,6 +184,14 @@ def _register_radio_callbacks(
         if portnum == "TEXT_MESSAGE_APP":
             _LOGGER.debug("Text message: %r", decoded.get("text", "")[:50])
             _handle_text_message(hass, store, packet)
+            # Count incoming text messages for time-series
+            ts = hass.data.get(DOMAIN, {}).get("ts")
+            if ts:
+                sender_id = packet.get("fromId")
+                local_num = ts.get("local_node_num")
+                local_id = _num_to_id(local_num) if local_num else None
+                if sender_id and sender_id != local_id:
+                    ts["accumulators"]["packetRx"] += 1
 
         # Handle delivery acknowledgements
         if portnum == "ROUTING_APP":
@@ -194,6 +235,17 @@ def _register_radio_callbacks(
         store.update_node(node_id, data)
         async_dispatcher_send(hass, SIGNAL_NODE_UPDATE, node_id)
 
+        # Capture telemetry snapshots from the local (gateway) node
+        ts = hass.data.get(DOMAIN, {}).get("ts")
+        if ts and node_num == ts.get("local_node_num"):
+            metrics = node.get("deviceMetrics", {})
+            if metrics.get("channelUtilization") is not None:
+                ts["snapshots"]["channelUtil"] = metrics["channelUtilization"]
+            if metrics.get("airUtilTx") is not None:
+                ts["snapshots"]["airtimeTx"] = metrics["airUtilTx"]
+            if metrics.get("batteryLevel") is not None:
+                ts["snapshots"]["battery"] = min(metrics["batteryLevel"], 100)
+
     @callback
     def _on_connection_state_change(
         new_state: ConnectionState, old_state: ConnectionState
@@ -209,7 +261,7 @@ def _register_radio_callbacks(
             ConnectionState.CONNECTING,
         ):
             # Re-sync nodes on reconnect
-            _sync_nodes_from_radio(store, connection)
+            _sync_nodes_from_radio(hass, store, connection)
 
     unsub_callbacks.append(connection.register_message_callback(_on_packet))
     unsub_callbacks.append(connection.register_node_update_callback(_on_node_update))
@@ -322,6 +374,11 @@ def _handle_delivery_ack(hass: HomeAssistant, packet: dict) -> None:
     else:
         status = "delivered"
 
+    # Count outgoing packets for time-series
+    ts = hass.data.get(DOMAIN, {}).get("ts")
+    if ts:
+        ts["accumulators"]["packetTx"] += 1
+
     async_dispatcher_send(
         hass,
         SIGNAL_DELIVERY_STATUS,
@@ -432,7 +489,9 @@ def _handle_waypoint(
 
 
 def _sync_nodes_from_radio(
-    store: MeshtasticUiStore, connection: MeshtasticConnection
+    hass: HomeAssistant,
+    store: MeshtasticUiStore,
+    connection: MeshtasticConnection,
 ) -> None:
     """Bulk import nodes from the radio's mesh database into the store."""
     nodes = connection.nodes
@@ -450,6 +509,21 @@ def _sync_nodes_from_radio(
     if updates:
         store.bulk_update_nodes(updates)
         _LOGGER.info("Synced %d nodes from radio mesh database", len(updates))
+
+    # Seed time-series state from the local (gateway) node
+    my_info = connection.my_info
+    ts = hass.data.get(DOMAIN, {}).get("ts")
+    if my_info and ts:
+        node_num = my_info.get("num")
+        if node_num is not None:
+            ts["local_node_num"] = node_num
+        metrics = my_info.get("deviceMetrics", {})
+        if metrics.get("channelUtilization") is not None:
+            ts["snapshots"]["channelUtil"] = metrics["channelUtilization"]
+        if metrics.get("airUtilTx") is not None:
+            ts["snapshots"]["airtimeTx"] = metrics["airUtilTx"]
+        if metrics.get("batteryLevel") is not None:
+            ts["snapshots"]["battery"] = min(metrics["batteryLevel"], 100)
 
 
 def _extract_node_data(node: dict) -> dict[str, Any]:

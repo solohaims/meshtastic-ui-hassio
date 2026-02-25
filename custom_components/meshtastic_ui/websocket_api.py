@@ -58,6 +58,7 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
     async_register_command(hass, ws_subscribe_traceroutes)
     async_register_command(hass, ws_get_notification_prefs)
     async_register_command(hass, ws_set_notification_prefs)
+    async_register_command(hass, ws_get_timeseries)
 
 
 def _get_store(hass: HomeAssistant) -> MeshtasticUiStore:
@@ -812,3 +813,25 @@ async def ws_set_notification_prefs(
         prefs["filter"] = msg["filter"]
     store.set_notification_prefs(prefs)
     connection.send_result(msg["id"], {"success": True})
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/get_timeseries",
+    }
+)
+@callback
+def ws_get_timeseries(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return time-series chart data collected by the backend."""
+    ts = hass.data.get(DOMAIN, {}).get("ts")
+    if ts is None:
+        connection.send_result(msg["id"], {"timeseries": None})
+        return
+    connection.send_result(
+        msg["id"],
+        {
+            "timeseries": {k: list(v) for k, v in ts["data"].items()},
+        },
+    )

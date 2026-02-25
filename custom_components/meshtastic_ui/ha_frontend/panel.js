@@ -8,8 +8,7 @@ import {
 import "./views.js";
 import "./settings.js";
 
-const TS_POINTS = 360;      // data points per chart
-const TS_FLUSH_MS = 10000;  // 10s per bucket → 1 hour window
+const TS_POLL_MS = 10000;  // poll backend for time-series every 10s
 
 const TABS = ["radio", "messages", "nodes", "map", "settings"];
 const TAB_LABELS = {
@@ -73,10 +72,8 @@ class MeshtasticUiPanel extends LitElement {
     this._showNotificationModal = false;
     this._nodeDialogId = null;
     this._nodeDialogFeedback = "";
-    this._timeSeries = this._restoreTimeSeries();
-    this._tsAccumulators = { packetRx: 0, packetTx: 0 };
-    this._tsSnapshots = { channelUtil: 0, airtimeTx: 0, battery: 0 };
-    this._tsIntervalId = null;
+    this._timeSeries = null;
+    this._tsPollingId = null;
     this._unsubscribeFn = null;
     this._unsubNodesFn = null;
     this._unsubDeliveryFn = null;
@@ -87,7 +84,10 @@ class MeshtasticUiPanel extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._loadData();
-    this._tsIntervalId = setInterval(() => this._flushTimeSeries(), TS_FLUSH_MS);
+    // Poll backend for time-series data (collected server-side even with no UI open)
+    if (!this._tsPollingId) {
+      this._tsPollingId = setInterval(() => this._loadTimeSeries(), TS_POLL_MS);
+    }
   }
 
   updated(changed) {
@@ -99,10 +99,9 @@ class MeshtasticUiPanel extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this._unsubscribe();
-    if (this._tsIntervalId) {
-      clearInterval(this._tsIntervalId);
-      this._tsIntervalId = null;
+    if (this._tsPollingId) {
+      clearInterval(this._tsPollingId);
+      this._tsPollingId = null;
     }
     if (this._tracerouteTimeoutId) {
       clearTimeout(this._tracerouteTimeoutId);
@@ -119,6 +118,7 @@ class MeshtasticUiPanel extends LitElement {
     await this._loadWaypoints();
     await this._loadTraceroutes();
     await this._loadNotificationPrefs();
+    await this._loadTimeSeries();
     this._subscribe();
   }
 
@@ -139,11 +139,6 @@ class MeshtasticUiPanel extends LitElement {
       if (this._gateways.length > 0) {
         const gw = this._gateways[0];
         if (gw.node_id) this._localNodeId = gw.node_id;
-        // Seed time-series snapshots from gateway sensors so charts show data immediately
-        const s = gw.sensors || {};
-        if (s.channel_utilization != null) this._tsSnapshots.channelUtil = s.channel_utilization;
-        if (s.air_util_tx != null) this._tsSnapshots.airtimeTx = s.air_util_tx;
-        if (s.battery != null) this._tsSnapshots.battery = Math.min(s.battery, 100);
       }
     }
   }
@@ -181,77 +176,11 @@ class MeshtasticUiPanel extends LitElement {
     if (result) this._notificationPrefs = result;
   }
 
-  _restoreTimeSeries() {
-    const empty = () => ({
-      channelUtil: new Float64Array(TS_POINTS),
-      airtimeTx: new Float64Array(TS_POINTS),
-      battery: new Float64Array(TS_POINTS),
-      packetTx: new Float64Array(TS_POINTS),
-      packetRx: new Float64Array(TS_POINTS),
-    });
-    try {
-      const raw = localStorage.getItem("meshtastic_ts_data");
-      if (!raw) return empty();
-      const saved = JSON.parse(raw);
-      const elapsed = Math.floor((Date.now() - saved.ts) / TS_FLUSH_MS);
-      if (elapsed >= TS_POINTS) return empty();
-      const ts = empty();
-      for (const key of Object.keys(ts)) {
-        const arr = saved.data?.[key];
-        if (!arr) continue;
-        const srcLen = arr.length;
-        // Keep only points that still fit in the window after elapsed time
-        const keepCount = Math.min(srcLen, TS_POINTS - elapsed);
-        if (keepCount <= 0) continue;
-        const srcStart = srcLen - keepCount;
-        const dstStart = TS_POINTS - elapsed - keepCount;
-        for (let i = 0; i < keepCount; i++) {
-          ts[key][dstStart + i] = arr[srcStart + i] || 0;
-        }
-      }
-      return ts;
-    } catch {
-      return empty();
+  async _loadTimeSeries() {
+    const result = await this._wsCommand("meshtastic_ui/get_timeseries");
+    if (result?.timeseries) {
+      this._timeSeries = result.timeseries;
     }
-  }
-
-  _saveTimeSeries() {
-    const ts = this._timeSeries;
-    const data = {};
-    for (const key of Object.keys(ts)) {
-      data[key] = Array.from(ts[key]);
-    }
-    localStorage.setItem("meshtastic_ts_data", JSON.stringify({
-      ts: Date.now(),
-      data,
-    }));
-  }
-
-  _flushTimeSeries() {
-    const ts = this._timeSeries;
-    const acc = this._tsAccumulators;
-    const snap = this._tsSnapshots;
-    for (const key of Object.keys(ts)) {
-      ts[key].copyWithin(0, 1);
-    }
-    // Snapshot values (latest telemetry, held until next update)
-    const last = TS_POINTS - 1;
-    ts.channelUtil[last] = snap.channelUtil;
-    ts.airtimeTx[last] = snap.airtimeTx;
-    ts.battery[last] = snap.battery;
-    // Counter values (reset each flush)
-    ts.packetTx[last] = acc.packetTx;
-    ts.packetRx[last] = acc.packetRx;
-    this._tsAccumulators = { packetRx: 0, packetTx: 0 };
-    // Create new typed-array copies so Lit detects reference changes in child charts
-    this._timeSeries = {
-      channelUtil: new Float64Array(ts.channelUtil),
-      airtimeTx: new Float64Array(ts.airtimeTx),
-      battery: new Float64Array(ts.battery),
-      packetTx: new Float64Array(ts.packetTx),
-      packetRx: new Float64Array(ts.packetRx),
-    };
-    this._saveTimeSeries();
   }
 
   _subscribe() {
@@ -317,8 +246,6 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   _handleRealtimeMessage(data) {
-    if (!data._outgoing) this._tsAccumulators.packetRx++;
-
     const key = data.type === "dm" ? data.partner : data.channel;
     if (!key) return;
 
@@ -352,12 +279,6 @@ class MeshtasticUiPanel extends LitElement {
   _handleNodeUpdate(event) {
     const { node_id, data } = event;
     if (!node_id) return;
-    // Capture telemetry snapshots from the local (gateway) node
-    if (node_id === this._localNodeId && data) {
-      if (data.channel_utilization != null) this._tsSnapshots.channelUtil = data.channel_utilization;
-      if (data.air_util_tx != null) this._tsSnapshots.airtimeTx = data.air_util_tx;
-      if (data.battery != null) this._tsSnapshots.battery = data.battery;
-    }
     this._nodes = {
       ...this._nodes,
       [node_id]: { ...(this._nodes[node_id] || {}), ...data },
@@ -367,7 +288,6 @@ class MeshtasticUiPanel extends LitElement {
   _handleDeliveryStatus(event) {
     const { packet_id, status, error } = event;
     if (!packet_id) return;
-    this._tsAccumulators.packetTx++;
     this._deliveryStatuses = {
       ...this._deliveryStatuses,
       [packet_id]: { status, error },
@@ -400,7 +320,7 @@ class MeshtasticUiPanel extends LitElement {
 
   _setTab(tab) {
     this._activeTab = tab;
-    if (tab === "radio") this._loadGateways();
+    if (tab === "radio") { this._loadGateways(); this._loadTimeSeries(); }
     if (tab === "nodes") this._loadNodes();
     if (tab === "map") { this._loadNodes(); this._loadWaypoints(); this._loadTraceroutes(); }
   }
