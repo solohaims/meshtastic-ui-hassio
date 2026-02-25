@@ -2014,16 +2014,21 @@ class MeshHorizonChart extends LitElement {
       }
     }
 
-    // X-axis: 10-minute interval gridlines
+    // X-axis: adaptive gridlines (aim for ~6 lines)
     ctx.textAlign = "center";
     const bucketSec = this.bucketInterval;
     const totalVisibleSec = visible * bucketSec;
-    for (let s = 600; s < totalVisibleSec; s += 600) {
+    const gridSteps = [300, 600, 1800, 3600, 7200, 14400, 28800, 86400];
+    const idealStep = totalVisibleSec / 6;
+    const gridStep = gridSteps.find((s) => s >= idealStep) || gridSteps[gridSteps.length - 1];
+    for (let s = gridStep; s < totalVisibleSec; s += gridStep) {
       const idx = visible - s / bucketSec;
       if (idx < 0) break;
       const x = idx * colW;
-      const mins = s / 60;
-      const label = mins >= 60 ? `-${mins / 60}h` : `-${mins}m`;
+      let label;
+      if (s >= 86400) label = `-${s / 86400}d`;
+      else if (s >= 3600) label = `-${s / 3600}h`;
+      else label = `-${s / 60}m`;
       ctx.fillStyle = "rgba(128,128,128,0.4)";
       ctx.fillRect(x, 0, 1, h);
       ctx.fillStyle = "rgba(128,128,128,0.8)";

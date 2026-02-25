@@ -76,8 +76,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "unsub_callbacks": [],
         "pending_acks": {},  # packet_id -> message info for delivery tracking
         "ts": {
-            "data": {k: deque([0.0] * TS_MAX_POINTS, maxlen=TS_MAX_POINTS) for k in _TS_SERIES_KEYS},
-            "packetTypes": {k: deque([0.0] * TS_MAX_POINTS, maxlen=TS_MAX_POINTS) for k in _PACKET_TYPE_KEYS},
+            "data": {k: deque(maxlen=TS_MAX_POINTS) for k in _TS_SERIES_KEYS},
+            "packetTypes": {k: deque(maxlen=TS_MAX_POINTS) for k in _PACKET_TYPE_KEYS},
             "snapshots": {"channelUtil": 0.0, "airtimeTx": 0.0, "battery": 0.0},
             "accumulators": {"packetTx": 0, "packetRx": 0},
             "packetTypeAccum": {k: 0 for k in _PACKET_TYPE_KEYS},
