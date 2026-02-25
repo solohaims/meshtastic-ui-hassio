@@ -422,7 +422,7 @@ export class MeshMessagesTab extends LitElement {
 
         .messages-layout {
           display: flex; gap: 16px;
-          height: calc(100vh - 150px);
+          height: calc(100vh - 130px);
         }
         .conversation-list {
           width: 240px; flex-shrink: 0;
@@ -1289,7 +1289,7 @@ export class MeshMapTab extends LitElement {
         :host { display: block; }
         .map-container {
           position: relative;
-          height: calc(100vh - 150px);
+          height: calc(100vh - 130px);
           border-radius: 12px; overflow: hidden;
           border: 1px solid var(--divider-color);
         }
@@ -1600,10 +1600,15 @@ export class MeshMapTab extends LitElement {
     const container = this.shadowRoot.querySelector("#mesh-map");
     if (!container || this._mapInstance) return;
 
-    const map = L.map(container).setView([0, 0], 2);
+    const map = L.map(container, {
+      minZoom: 3,
+      maxBounds: [[-85, -180], [85, 180]],
+      maxBoundsViscosity: 1.0,
+    }).setView([20, 0], 3);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
+      noWrap: true,
     }).addTo(map);
 
     this._mapInstance = map;
