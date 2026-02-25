@@ -194,6 +194,16 @@ export class MeshRadioTab extends LitElement {
           color: var(--secondary-text-color);
           margin-bottom: 4px;
         }
+
+        .table-scroll { overflow-x: auto; }
+
+        @media (max-width: 600px) {
+          .gateway-card-header { flex-wrap: wrap; }
+          .gateway-meta { flex-wrap: wrap; gap: 8px; }
+          .channels-table th,
+          .channels-table td { padding: 6px 8px; font-size: 12px; }
+          .metrics-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+        }
       `,
     ];
   }
@@ -289,25 +299,27 @@ export class MeshRadioTab extends LitElement {
         ${channels.length ? html`
           <div class="gateway-section">
             <div class="section-title">Channels</div>
-            <table class="channels-table">
-              <thead>
-                <tr>
-                  <th>Name</th><th>Index</th><th>Type</th><th>PSK</th><th>Uplink</th><th>Downlink</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${channels.map((ch) => html`
+            <div class="table-scroll">
+              <table class="channels-table">
+                <thead>
                   <tr>
-                    <td>${ch.name}</td>
-                    <td>${ch.index}</td>
-                    <td><span class="badge ${ch.primary ? "primary" : "secondary"}">${ch.primary ? "Primary" : "Secondary"}</span></td>
-                    <td>${ch.psk ? "Yes" : "No"}</td>
-                    <td>${ch.uplink ? "Yes" : "No"}</td>
-                    <td>${ch.downlink ? "Yes" : "No"}</td>
+                    <th>Name</th><th>Index</th><th>Type</th><th>PSK</th><th>Uplink</th><th>Downlink</th>
                   </tr>
-                `)}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  ${channels.map((ch) => html`
+                    <tr>
+                      <td>${ch.name}</td>
+                      <td>${ch.index}</td>
+                      <td><span class="badge ${ch.primary ? "primary" : "secondary"}">${ch.primary ? "Primary" : "Secondary"}</span></td>
+                      <td>${ch.psk ? "Yes" : "No"}</td>
+                      <td>${ch.uplink ? "Yes" : "No"}</td>
+                      <td>${ch.downlink ? "Yes" : "No"}</td>
+                    </tr>
+                  `)}
+                </tbody>
+              </table>
+            </div>
           </div>
         ` : ""}
       </div>
@@ -447,6 +459,24 @@ export class MeshMessagesTab extends LitElement {
         .encryption-badge {
           display: inline-block; font-size: 10px;
           margin-left: 6px; opacity: 0.6; vertical-align: middle;
+        }
+
+        @media (max-width: 600px) {
+          .messages-layout { flex-direction: column; }
+          .conversation-list {
+            width: auto; flex-shrink: 0;
+            overflow-x: auto; overflow-y: hidden;
+            border-right: none;
+            border-bottom: 1px solid var(--divider-color);
+            padding: 0 0 8px; padding-right: 0;
+            display: flex; flex-direction: row; gap: 4px;
+            white-space: nowrap;
+          }
+          .conversation-header { display: none; }
+          .conversation-item {
+            display: inline-block; white-space: nowrap;
+            padding: 6px 12px; flex-shrink: 0; margin-bottom: 0;
+          }
         }
       `,
     ];
@@ -754,6 +784,18 @@ export class MeshNodesTab extends LitElement {
           text-transform: uppercase; letter-spacing: 1px;
           padding: 12px 20px 4px; font-weight: 600;
         }
+
+        .table-scroll { overflow-x: auto; }
+
+        @media (max-width: 600px) {
+          .col-rssi { display: none; }
+          .nodes-table th,
+          .nodes-table td { padding: 8px 6px; font-size: 13px; }
+          .node-name-cell {
+            max-width: 120px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+          }
+        }
       `,
     ];
   }
@@ -852,46 +894,50 @@ export class MeshNodesTab extends LitElement {
 
     return html`
       <ha-card>
-        <table class="nodes-table">
-          <thead>
-            <tr>
-              ${columns.map((col) => html`
-                <th @click=${() => col.key !== "_fav" && this._sortNodes(col.key)} style="${col.key === "_fav" ? "width:32px;cursor:default;" : ""}">
-                  ${col.label}
-                  ${this._sortColumn === col.key
-                    ? html`<span class="sort-indicator">${this._sortAsc ? "\u25B2" : "\u25BC"}</span>`
-                    : ""}
-                </th>
-              `)}
-            </tr>
-          </thead>
-          <tbody>
-            ${sortedNodes.map(([nodeId, node]) => {
-              const isFav = favSet.has(nodeId);
-              const isIgn = ignSet.has(nodeId);
-              return html`
-                <tr class="clickable-row" @click=${() => this._openNodeDialog(nodeId)}>
-                  <td>
-                    <span class="fav-star ${isFav ? "active" : ""}"
-                      @click=${(e) => { e.stopPropagation(); this._fireNodeAction(isFav ? "unfavorite" : "favorite", nodeId); }}
-                      title="${isFav ? "Remove from favorites" : "Add to favorites"}"
-                    >${isFav ? "\u2605" : "\u2606"}</span>
-                  </td>
-                  <td>
-                    <span class="node-name-cell">
-                      ${node.name || nodeId}${isIgn ? html`<span class="ignored-badge">IGN</span>` : ""}
-                    </span>
-                  </td>
-                  <td>${node.snr ?? "\u2014"}</td>
-                  <td>${node.rssi ?? "\u2014"}</td>
-                  <td>${node.hops ?? "\u2014"}</td>
-                  <td>${node.battery != null ? `${node.battery}%` : "\u2014"}</td>
-                  <td>${formatLastSeen(node._last_seen)}</td>
-                </tr>
-              `;
-            })}
-          </tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="nodes-table">
+            <thead>
+              <tr>
+                ${columns.map((col) => html`
+                  <th class="${col.key === "rssi" ? "col-rssi" : ""}"
+                    @click=${() => col.key !== "_fav" && this._sortNodes(col.key)}
+                    style="${col.key === "_fav" ? "width:32px;cursor:default;" : ""}">
+                    ${col.label}
+                    ${this._sortColumn === col.key
+                      ? html`<span class="sort-indicator">${this._sortAsc ? "\u25B2" : "\u25BC"}</span>`
+                      : ""}
+                  </th>
+                `)}
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedNodes.map(([nodeId, node]) => {
+                const isFav = favSet.has(nodeId);
+                const isIgn = ignSet.has(nodeId);
+                return html`
+                  <tr class="clickable-row" @click=${() => this._openNodeDialog(nodeId)}>
+                    <td>
+                      <span class="fav-star ${isFav ? "active" : ""}"
+                        @click=${(e) => { e.stopPropagation(); this._fireNodeAction(isFav ? "unfavorite" : "favorite", nodeId); }}
+                        title="${isFav ? "Remove from favorites" : "Add to favorites"}"
+                      >${isFav ? "\u2605" : "\u2606"}</span>
+                    </td>
+                    <td>
+                      <span class="node-name-cell">
+                        ${node.name || nodeId}${isIgn ? html`<span class="ignored-badge">IGN</span>` : ""}
+                      </span>
+                    </td>
+                    <td>${node.snr ?? "\u2014"}</td>
+                    <td class="col-rssi">${node.rssi ?? "\u2014"}</td>
+                    <td>${node.hops ?? "\u2014"}</td>
+                    <td>${node.battery != null ? `${node.battery}%` : "\u2014"}</td>
+                    <td>${formatLastSeen(node._last_seen)}</td>
+                  </tr>
+                `;
+              })}
+            </tbody>
+          </table>
+        </div>
       </ha-card>
     `;
   }

@@ -439,6 +439,12 @@ class MeshtasticUiPanel extends LitElement {
         overflow-y: auto;
         box-sizing: border-box;
       }
+
+      @media (max-width: 600px) {
+        .tabs { padding: 0 4px; }
+        .tab { padding: 10px 12px; font-size: 13px; }
+        .content { padding: 8px; }
+      }
     `;
   }
 
