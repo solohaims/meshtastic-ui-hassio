@@ -4,6 +4,16 @@
 
 A companion HACS integration that adds a full-featured dashboard for your [Meshtastic](https://meshtastic.org) mesh network in Home Assistant. Connects directly to your radio via TCP, Serial, or Bluetooth and provides messaging, node management, mapping, and complete radio configuration — all from the HA sidebar.
 
+## Why Connect a Radio to Home Assistant?
+
+A Meshtastic node plugged into your Home Assistant server becomes an **always-on gateway** to your mesh network. Unlike a phone or laptop that goes to sleep, a home server runs 24/7 — so your node never misses a message.
+
+- **Never miss a message** — Every channel broadcast and direct message is captured and stored, even when your phone is off or out of range. Come back hours or days later and scroll through the full history.
+- **Send messages from anywhere** — Open your HA dashboard from any browser or the HA mobile app and send messages to your mesh. Useful for remote check-ins or coordinating with people in the field when you're away from home.
+- **Long-term message and node history** — All messages, node sightings, waypoints, and traceroute results are persisted to disk and survive HA restarts. Build up weeks of mesh activity without losing data.
+- **Monitor your mesh passively** — Real-time charts track channel utilization, airtime, battery, and packet rates. See at a glance how busy your mesh is and whether your gateway node is healthy.
+- **Automate with HA** — Pair with HA automations to get push notifications on your phone when a message arrives, trigger alerts based on node status, or log mesh telemetry to long-term databases like InfluxDB.
+
 ## Features
 
 ### Radio Tab
