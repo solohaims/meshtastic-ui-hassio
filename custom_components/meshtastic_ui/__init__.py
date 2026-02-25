@@ -341,8 +341,16 @@ def _handle_text_message(
         return
 
     sender_id = normalize_node_id(packet.get("fromId", "unknown"))
+
+    # Skip our own outgoing messages — already handled by ws_send_message
+    ts = hass.data.get(DOMAIN, {}).get("ts")
+    if ts:
+        local_num = ts.get("local_node_num")
+        if local_num and sender_id == _num_to_id(local_num):
+            return
+
     to_id = packet.get("toId", "")
-    channel_index = packet.get("channel", 0)
+    channel_key = str(packet.get("channel", 0))
     timestamp = datetime.now(timezone.utc).isoformat()
 
     message: dict[str, Any] = {
@@ -350,14 +358,13 @@ def _handle_text_message(
         "from": sender_id,
         "to": to_id,
         "timestamp": timestamp,
-        "channel": channel_index,
+        "channel": channel_key,
     }
 
     # Broadcast destinations: ^all or !ffffffff
     is_broadcast = to_id in ("^all", "!ffffffff", "")
 
     if is_broadcast:
-        channel_key = str(channel_index)
         store.add_channel_message(channel_key, message)
         async_dispatcher_send(
             hass,

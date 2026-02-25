@@ -85,6 +85,7 @@ class MeshtasticUiPanel extends LitElement {
     this._unsubDeliveryFn = null;
     this._unsubWaypointsFn = null;
     this._unsubTraceroutesFn = null;
+    this._subscribing = false;
   }
 
   connectedCallback() {
@@ -106,10 +107,11 @@ class MeshtasticUiPanel extends LitElement {
         this._unsubDeliveryFn = null;
         this._unsubWaypointsFn = null;
         this._unsubTraceroutesFn = null;
+        this._subscribing = false;
         this._subscribe();
       }
       this._prevConnection = conn;
-      if (!this._unsubscribeFn) {
+      if (!this._unsubscribeFn && !this._subscribing) {
         // hass wasn't available during connectedCallback — retry
         this._loadData();
       }
@@ -208,56 +210,54 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   _subscribe() {
-    if (!this.hass) return;
+    if (!this.hass || this._subscribing) return;
+    this._subscribing = true;
+
+    const conn = this.hass.connection;
 
     if (!this._unsubscribeFn) {
-      this.hass.connection
-        .subscribeMessage(
-          (event) => this._handleRealtimeMessage(event),
-          { type: "meshtastic_ui/subscribe" }
-        )
-        .then((unsub) => { this._unsubscribeFn = unsub; })
-        .catch((err) => console.error("Failed to subscribe:", err));
+      conn.subscribeMessage(
+        (event) => this._handleRealtimeMessage(event),
+        { type: "meshtastic_ui/subscribe" }
+      )
+      .then((unsub) => { this._unsubscribeFn = unsub; })
+      .catch((err) => console.error("Failed to subscribe:", err));
     }
 
     if (!this._unsubNodesFn) {
-      this.hass.connection
-        .subscribeMessage(
-          (event) => this._handleNodeUpdate(event),
-          { type: "meshtastic_ui/subscribe_nodes" }
-        )
-        .then((unsub) => { this._unsubNodesFn = unsub; })
-        .catch((err) => console.error("Failed to subscribe nodes:", err));
+      conn.subscribeMessage(
+        (event) => this._handleNodeUpdate(event),
+        { type: "meshtastic_ui/subscribe_nodes" }
+      )
+      .then((unsub) => { this._unsubNodesFn = unsub; })
+      .catch((err) => console.error("Failed to subscribe nodes:", err));
     }
 
     if (!this._unsubDeliveryFn) {
-      this.hass.connection
-        .subscribeMessage(
-          (event) => this._handleDeliveryStatus(event),
-          { type: "meshtastic_ui/subscribe_delivery" }
-        )
-        .then((unsub) => { this._unsubDeliveryFn = unsub; })
-        .catch((err) => console.error("Failed to subscribe delivery:", err));
+      conn.subscribeMessage(
+        (event) => this._handleDeliveryStatus(event),
+        { type: "meshtastic_ui/subscribe_delivery" }
+      )
+      .then((unsub) => { this._unsubDeliveryFn = unsub; })
+      .catch((err) => console.error("Failed to subscribe delivery:", err));
     }
 
     if (!this._unsubWaypointsFn) {
-      this.hass.connection
-        .subscribeMessage(
-          (event) => this._handleWaypointUpdate(event),
-          { type: "meshtastic_ui/subscribe_waypoints" }
-        )
-        .then((unsub) => { this._unsubWaypointsFn = unsub; })
-        .catch((err) => console.error("Failed to subscribe waypoints:", err));
+      conn.subscribeMessage(
+        (event) => this._handleWaypointUpdate(event),
+        { type: "meshtastic_ui/subscribe_waypoints" }
+      )
+      .then((unsub) => { this._unsubWaypointsFn = unsub; })
+      .catch((err) => console.error("Failed to subscribe waypoints:", err));
     }
 
     if (!this._unsubTraceroutesFn) {
-      this.hass.connection
-        .subscribeMessage(
-          (event) => this._handleTracerouteResult(event),
-          { type: "meshtastic_ui/subscribe_traceroutes" }
-        )
-        .then((unsub) => { this._unsubTraceroutesFn = unsub; })
-        .catch((err) => console.error("Failed to subscribe traceroutes:", err));
+      conn.subscribeMessage(
+        (event) => this._handleTracerouteResult(event),
+        { type: "meshtastic_ui/subscribe_traceroutes" }
+      )
+      .then((unsub) => { this._unsubTraceroutesFn = unsub; })
+      .catch((err) => console.error("Failed to subscribe traceroutes:", err));
     }
   }
 
@@ -267,6 +267,7 @@ class MeshtasticUiPanel extends LitElement {
     if (this._unsubDeliveryFn) { this._unsubDeliveryFn(); this._unsubDeliveryFn = null; }
     if (this._unsubWaypointsFn) { this._unsubWaypointsFn(); this._unsubWaypointsFn = null; }
     if (this._unsubTraceroutesFn) { this._unsubTraceroutesFn(); this._unsubTraceroutesFn = null; }
+    this._subscribing = false;
   }
 
   _handleRealtimeMessage(data) {

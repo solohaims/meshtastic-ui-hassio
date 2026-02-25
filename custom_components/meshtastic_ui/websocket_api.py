@@ -394,9 +394,9 @@ async def ws_send_message(
             )
         else:
             # Channel broadcast
-            out_msg["to"] = "^all"
-            out_msg["channel"] = channel
             channel_key = str(channel)
+            out_msg["to"] = "^all"
+            out_msg["channel"] = channel_key
             store.add_channel_message(channel_key, out_msg)
             async_dispatcher_send(
                 hass,
