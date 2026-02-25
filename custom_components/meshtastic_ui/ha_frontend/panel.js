@@ -38,6 +38,7 @@ class MeshtasticUiPanel extends LitElement {
       _waypoints: { type: Object },
       _traceroutes: { type: Object },
       _localNodeId: { type: String },
+      _timeSeries: { type: Object },
     };
   }
 
@@ -57,6 +58,17 @@ class MeshtasticUiPanel extends LitElement {
     this._waypoints = {};
     this._traceroutes = {};
     this._localNodeId = "";
+    this._timeSeries = {
+      messageRate: new Float64Array(150),
+      networkSnr: new Float64Array(150),
+      nodeActivity: new Float64Array(150),
+      deliveryRate: new Float64Array(150),
+    };
+    this._tsAccumulators = {
+      msgCount: 0, snrSum: 0, snrCount: 0,
+      nodeCount: 0, deliveryOk: 0, deliveryTotal: 0,
+    };
+    this._tsIntervalId = null;
     this._unsubscribeFn = null;
     this._unsubNodesFn = null;
     this._unsubDeliveryFn = null;
@@ -67,11 +79,16 @@ class MeshtasticUiPanel extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._loadData();
+    this._tsIntervalId = setInterval(() => this._flushTimeSeries(), 2000);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._unsubscribe();
+    if (this._tsIntervalId) {
+      clearInterval(this._tsIntervalId);
+      this._tsIntervalId = null;
+    }
   }
 
   /* ── Data loading ── */
@@ -139,6 +156,23 @@ class MeshtasticUiPanel extends LitElement {
     if (result) this._traceroutes = result.traceroutes || {};
   }
 
+  _flushTimeSeries() {
+    const ts = this._timeSeries;
+    const acc = this._tsAccumulators;
+    for (const key of Object.keys(ts)) {
+      ts[key].copyWithin(0, 1);
+    }
+    ts.messageRate[149] = acc.msgCount;
+    ts.networkSnr[149] = acc.snrCount > 0 ? acc.snrSum / acc.snrCount : 0;
+    ts.nodeActivity[149] = acc.nodeCount;
+    ts.deliveryRate[149] = acc.deliveryTotal > 0 ? acc.deliveryOk / acc.deliveryTotal : 0;
+    this._tsAccumulators = {
+      msgCount: 0, snrSum: 0, snrCount: 0,
+      nodeCount: 0, deliveryOk: 0, deliveryTotal: 0,
+    };
+    this._timeSeries = { ...ts };
+  }
+
   _subscribe() {
     if (!this.hass) return;
 
@@ -202,6 +236,8 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   _handleRealtimeMessage(data) {
+    this._tsAccumulators.msgCount++;
+
     const key = data.type === "dm" ? data.partner : data.channel;
     if (!key) return;
 
@@ -228,6 +264,11 @@ class MeshtasticUiPanel extends LitElement {
   _handleNodeUpdate(event) {
     const { node_id, data } = event;
     if (!node_id) return;
+    this._tsAccumulators.nodeCount++;
+    if (data?.snr != null) {
+      this._tsAccumulators.snrSum += data.snr;
+      this._tsAccumulators.snrCount++;
+    }
     this._nodes = {
       ...this._nodes,
       [node_id]: { ...(this._nodes[node_id] || {}), ...data },
@@ -241,6 +282,8 @@ class MeshtasticUiPanel extends LitElement {
   _handleDeliveryStatus(event) {
     const { packet_id, status, error } = event;
     if (!packet_id) return;
+    this._tsAccumulators.deliveryTotal++;
+    if (status === "delivered") this._tsAccumulators.deliveryOk++;
     this._deliveryStatuses = {
       ...this._deliveryStatuses,
       [packet_id]: { status, error },
@@ -469,7 +512,7 @@ class MeshtasticUiPanel extends LitElement {
       case "map":
         return html`<mesh-map-tab .nodes=${this._nodes} .waypoints=${this._waypoints} .traceroutes=${this._traceroutes} .localNodeId=${this._localNodeId}></mesh-map-tab>`;
       case "stats":
-        return html`<mesh-stats-tab .stats=${this._stats}></mesh-stats-tab>`;
+        return html`<mesh-stats-tab .stats=${this._stats} .timeSeries=${this._timeSeries}></mesh-stats-tab>`;
       case "settings":
         return html`
           <mesh-settings-tab

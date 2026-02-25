@@ -1580,6 +1580,200 @@ export class MeshMapTab extends LitElement {
 customElements.define("mesh-map-tab", MeshMapTab);
 
 /* ══════════════════════════════════════════════════════════
+   <mesh-horizon-chart>  –  D3 canvas-based horizon chart
+   ══════════════════════════════════════════════════════════ */
+
+let _d3Promise = null;
+function loadD3() {
+  if (window.d3) return Promise.resolve();
+  if (_d3Promise) return _d3Promise;
+  _d3Promise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/d3@7/dist/d3.min.js";
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return _d3Promise;
+}
+
+class MeshHorizonChart extends LitElement {
+  static get properties() {
+    return {
+      data: { type: Object },
+      label: { type: String },
+      colorScheme: { type: String },
+      bands: { type: Number },
+      height: { type: Number },
+      maxValue: { type: Number },
+      unit: { type: String },
+      _d3Ready: { type: Boolean },
+    };
+  }
+
+  constructor() {
+    super();
+    this.data = null;
+    this.label = "";
+    this.colorScheme = "Blues";
+    this.bands = 4;
+    this.height = 64;
+    this.maxValue = 0;
+    this.unit = "";
+    this._d3Ready = false;
+    this._resizeObserver = null;
+    this._canvasWidth = 0;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    loadD3().then(() => {
+      this._d3Ready = true;
+    });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+  }
+
+  firstUpdated() {
+    const container = this.shadowRoot.querySelector(".chart-wrap");
+    if (container) {
+      this._resizeObserver = new ResizeObserver((entries) => {
+        const w = entries[0].contentRect.width;
+        if (w > 0 && w !== this._canvasWidth) {
+          this._canvasWidth = w;
+          this._drawHorizon();
+        }
+      });
+      this._resizeObserver.observe(container);
+    }
+  }
+
+  updated(changed) {
+    if (changed.has("data") || changed.has("_d3Ready")) {
+      this._drawHorizon();
+    }
+  }
+
+  _drawHorizon() {
+    if (!this._d3Ready || !this.data || !window.d3) return;
+    const canvas = this.shadowRoot.querySelector("canvas");
+    if (!canvas) return;
+
+    const w = this._canvasWidth || canvas.parentElement?.clientWidth || 300;
+    const h = this.height;
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const d3 = window.d3;
+    const arr = this.data;
+    const len = arr.length;
+    const max = this.maxValue > 0 ? this.maxValue : d3.max(arr) || 1;
+    const bandH = h / this.bands;
+    const colW = w / len;
+
+    const scheme = d3[`scheme${this.colorScheme}`];
+    const colors = scheme && scheme[Math.max(3, this.bands + 1)]
+      ? scheme[Math.max(3, this.bands + 1)].slice(1, this.bands + 1)
+      : d3.schemeBlues[Math.max(3, this.bands + 1)].slice(1, this.bands + 1);
+
+    // Horizon chart: each column draws stacked color bands from the bottom.
+    // Band 0 = lightest, higher bands = darker. Each band occupies bandH px max.
+    for (let i = 0; i < len; i++) {
+      const val = Math.min(arr[i], max);
+      const scaled = (val / max) * (bandH * this.bands);
+      let remaining = scaled;
+
+      for (let b = 0; b < this.bands && remaining > 0; b++) {
+        const layerH = Math.min(remaining, bandH);
+        ctx.fillStyle = colors[b];
+        ctx.fillRect(i * colW, h - layerH, colW + 0.5, layerH);
+        remaining -= bandH;
+      }
+    }
+
+    // Time axis: minute-boundary ticks
+    ctx.fillStyle = "var(--secondary-text-color, #999)";
+    ctx.font = "9px sans-serif";
+    ctx.textAlign = "center";
+    const bucketSec = 2;
+    const totalSec = len * bucketSec;
+    for (let s = 60; s < totalSec; s += 60) {
+      const idx = len - s / bucketSec;
+      if (idx < 0) break;
+      const x = idx * colW;
+      const label = `-${s / 60}m`;
+      ctx.fillStyle = "rgba(128,128,128,0.4)";
+      ctx.fillRect(x, 0, 1, h);
+      ctx.fillStyle = "rgba(128,128,128,0.8)";
+      ctx.fillText(label, x, h - 2);
+    }
+  }
+
+  static get styles() {
+    return css`
+      :host { display: block; }
+      .chart-container {
+        background: var(--card-background-color);
+        border-radius: 12px;
+        border: 1px solid var(--divider-color);
+        padding: 12px 16px;
+      }
+      .chart-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--secondary-text-color);
+        margin-bottom: 8px;
+      }
+      .chart-wrap {
+        width: 100%;
+        position: relative;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        border-radius: 4px;
+      }
+      .loading {
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-text-color);
+        font-size: 13px;
+      }
+    `;
+  }
+
+  render() {
+    return html`
+      <div class="chart-container">
+        <div class="chart-label">${this.label}${this.unit ? html` <span style="opacity:0.6">(${this.unit})</span>` : ""}</div>
+        <div class="chart-wrap">
+          ${this._d3Ready
+            ? html`<canvas height="${this.height}"></canvas>`
+            : html`<div class="loading">Loading D3...</div>`}
+        </div>
+      </div>
+    `;
+  }
+}
+customElements.define("mesh-horizon-chart", MeshHorizonChart);
+
+/* ══════════════════════════════════════════════════════════
    <mesh-stats-tab>
    ══════════════════════════════════════════════════════════ */
 
@@ -1587,12 +1781,14 @@ export class MeshStatsTab extends LitElement {
   static get properties() {
     return {
       stats: { type: Object },
+      timeSeries: { type: Object },
     };
   }
 
   constructor() {
     super();
     this.stats = { messages_today: 0, active_nodes: 0, total_nodes: 0, channel_count: 0 };
+    this.timeSeries = null;
   }
 
   static get styles() {
@@ -1616,6 +1812,19 @@ export class MeshStatsTab extends LitElement {
         font-size: 32px; font-weight: 700;
         color: var(--primary-text-color);
       }
+      .charts-section {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+      }
+      .charts-heading {
+        margin-top: 24px;
+        margin-bottom: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--secondary-text-color);
+      }
     `;
   }
 
@@ -1626,6 +1835,8 @@ export class MeshStatsTab extends LitElement {
       { label: "Total Nodes", value: this.stats.total_nodes, icon: "mdi:radio-tower" },
       { label: "Channels", value: this.stats.channel_count, icon: "mdi:forum" },
     ];
+
+    const ts = this.timeSeries;
 
     return html`
       <div class="stats-grid">
@@ -1639,6 +1850,36 @@ export class MeshStatsTab extends LitElement {
           </div>
         `)}
       </div>
+      ${ts ? html`
+        <div class="charts-heading">Real-Time Activity (5 min window)</div>
+        <div class="charts-section">
+          <mesh-horizon-chart
+            .data=${ts.messageRate}
+            label="Message Rate"
+            colorScheme="Blues"
+            unit="msgs/2s"
+          ></mesh-horizon-chart>
+          <mesh-horizon-chart
+            .data=${ts.networkSnr}
+            label="Network SNR"
+            colorScheme="Greens"
+            unit="dB"
+          ></mesh-horizon-chart>
+          <mesh-horizon-chart
+            .data=${ts.nodeActivity}
+            label="Node Activity"
+            colorScheme="Oranges"
+            unit="events/2s"
+          ></mesh-horizon-chart>
+          <mesh-horizon-chart
+            .data=${ts.deliveryRate}
+            label="Delivery Rate"
+            colorScheme="Purples"
+            unit="%"
+            .maxValue=${1}
+          ></mesh-horizon-chart>
+        </div>
+      ` : ""}
     `;
   }
 }
