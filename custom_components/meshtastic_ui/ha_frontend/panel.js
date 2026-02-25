@@ -37,6 +37,7 @@ class MeshtasticUiPanel extends LitElement {
       _deliveryStatuses: { type: Object },
       _waypoints: { type: Object },
       _traceroutes: { type: Object },
+      _localNodeId: { type: String },
     };
   }
 
@@ -55,6 +56,7 @@ class MeshtasticUiPanel extends LitElement {
     this._deliveryStatuses = {}; // packet_id -> {status, error}
     this._waypoints = {};
     this._traceroutes = {};
+    this._localNodeId = "";
     this._unsubscribeFn = null;
     this._unsubNodesFn = null;
     this._unsubDeliveryFn = null;
@@ -96,7 +98,12 @@ class MeshtasticUiPanel extends LitElement {
 
   async _loadGateways() {
     const result = await this._wsCommand("meshtastic_ui/gateways");
-    if (result) this._gateways = result.gateways || [];
+    if (result) {
+      this._gateways = result.gateways || [];
+      if (this._gateways.length > 0 && this._gateways[0].node_id) {
+        this._localNodeId = this._gateways[0].node_id;
+      }
+    }
   }
 
   async _loadMessages() {
@@ -460,7 +467,7 @@ class MeshtasticUiPanel extends LitElement {
           ></mesh-nodes-tab>
         `;
       case "map":
-        return html`<mesh-map-tab .nodes=${this._nodes} .waypoints=${this._waypoints} .traceroutes=${this._traceroutes}></mesh-map-tab>`;
+        return html`<mesh-map-tab .nodes=${this._nodes} .waypoints=${this._waypoints} .traceroutes=${this._traceroutes} .localNodeId=${this._localNodeId}></mesh-map-tab>`;
       case "stats":
         return html`<mesh-stats-tab .stats=${this._stats}></mesh-stats-tab>`;
       case "settings":

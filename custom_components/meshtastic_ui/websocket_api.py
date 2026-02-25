@@ -152,6 +152,12 @@ async def ws_gateways(
 
     state = "connected" if conn.state == "connected" else str(conn.state)
 
+    # Get local node ID in !hex format
+    local_node_id = None
+    node_num = my_info.get("num")
+    if node_num is not None:
+        local_node_id = f"!{node_num:08x}"
+
     gateways.append(
         {
             "entity_id": None,
@@ -162,6 +168,7 @@ async def ws_gateways(
             "serial": serial,
             "sensors": sensors,
             "channels": channels,
+            "node_id": local_node_id,
         }
     )
 

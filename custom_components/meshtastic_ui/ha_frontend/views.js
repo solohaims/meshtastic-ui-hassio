@@ -1066,6 +1066,7 @@ export class MeshMapTab extends LitElement {
       nodes: { type: Object },
       waypoints: { type: Object },
       traceroutes: { type: Object },
+      localNodeId: { type: String },
     };
   }
 
@@ -1074,6 +1075,7 @@ export class MeshMapTab extends LitElement {
     this.nodes = {};
     this.waypoints = {};
     this.traceroutes = {};
+    this.localNodeId = "";
     this._leafletLoaded = false;
     this._leafletError = false;
     this._mapInstance = null;
@@ -1175,7 +1177,10 @@ export class MeshMapTab extends LitElement {
 
   updated(changedProps) {
     if (!this._mapInstance) return;
-    if (changedProps.has("nodes")) this._updateNodeLayer();
+    if (changedProps.has("nodes") || changedProps.has("localNodeId")) {
+      this._updateNodeLayer();
+      this._updateSnrLines();
+    }
     if (changedProps.has("waypoints")) this._updateWaypointLayer();
     if (changedProps.has("traceroutes")) this._updateTracerouteLayer();
   }
@@ -1207,6 +1212,16 @@ export class MeshMapTab extends LitElement {
     const nodesWithout = Object.keys(this.nodes).length - nodesWithPosition.length;
     const wpCount = Object.keys(this.waypoints || {}).length;
 
+    // Count nodes with SNR data + position (for SNR lines label)
+    const snrCount = this.localNodeId && nodesWithPosition.length > 0
+      ? Object.entries(this.nodes).filter(([id, n]) =>
+          id !== this.localNodeId && n.snr != null &&
+          !isNaN(parseFloat(n.latitude)) && !isNaN(parseFloat(n.longitude)) &&
+          !(parseFloat(n.latitude) === 0 && parseFloat(n.longitude) === 0)
+        ).length
+      : 0;
+    const routeCount = Object.keys(this.traceroutes || {}).length;
+
     return html`
       <div class="map-container">
         <div id="mesh-map" class="map-element"></div>
@@ -1216,9 +1231,9 @@ export class MeshMapTab extends LitElement {
           <button class="layer-btn ${this._showWaypoints ? "active" : ""}"
             @click=${() => this._toggleLayer("waypoints")}>Waypoints (${wpCount})</button>
           <button class="layer-btn ${this._showSnrLines ? "active" : ""}"
-            @click=${() => this._toggleLayer("snr")}>SNR Lines</button>
+            @click=${() => this._toggleLayer("snr")}>SNR Lines${snrCount > 0 ? ` (${snrCount})` : ""}</button>
           <button class="layer-btn ${this._showTraceroutes ? "active" : ""}"
-            @click=${() => this._toggleLayer("traceroutes")}>Routes</button>
+            @click=${() => this._toggleLayer("traceroutes")}>Routes${routeCount > 0 ? ` (${routeCount})` : ""}</button>
         </div>
         ${nodesWithout > 0 ? html`
           <div class="map-info-badge">${nodesWithout} node${nodesWithout !== 1 ? "s" : ""} without position</div>
@@ -1284,12 +1299,22 @@ export class MeshMapTab extends LitElement {
     } else if (layer === "snr") {
       this._showSnrLines = !this._showSnrLines;
       if (this._snrLineLayer) {
-        this._showSnrLines ? this._mapInstance.addLayer(this._snrLineLayer) : this._mapInstance.removeLayer(this._snrLineLayer);
+        if (this._showSnrLines) {
+          this._updateSnrLines();
+          this._mapInstance.addLayer(this._snrLineLayer);
+        } else {
+          this._mapInstance.removeLayer(this._snrLineLayer);
+        }
       }
     } else if (layer === "traceroutes") {
       this._showTraceroutes = !this._showTraceroutes;
       if (this._tracerouteLayer) {
-        this._showTraceroutes ? this._mapInstance.addLayer(this._tracerouteLayer) : this._mapInstance.removeLayer(this._tracerouteLayer);
+        if (this._showTraceroutes) {
+          this._updateTracerouteLayer();
+          this._mapInstance.addLayer(this._tracerouteLayer);
+        } else {
+          this._mapInstance.removeLayer(this._tracerouteLayer);
+        }
       }
     }
     this.requestUpdate();
@@ -1446,17 +1471,31 @@ export class MeshMapTab extends LitElement {
       }
     }
 
-    // Draw lines from our node to each other node with SNR
-    // We don't know our own ID, so just draw between nodes with shared traceroute data
-    // For now, draw from each node back to closest neighbor if SNR data exists
     const drawn = new Set();
-    for (const [nodeId, node] of Object.entries(this.nodes)) {
-      if (!nodePositions[nodeId] || node.snr == null) continue;
-      // Find the nearest node (approximation—in a mesh we don't know the specific link)
-      // Instead, just visualize all traceroute links
+
+    // Draw lines from our local/gateway node to each node with SNR data
+    const localPos = this.localNodeId ? nodePositions[this.localNodeId] : null;
+    if (localPos) {
+      for (const [nodeId, node] of Object.entries(this.nodes)) {
+        if (nodeId === this.localNodeId) continue;
+        if (!nodePositions[nodeId] || node.snr == null) continue;
+        const key = [this.localNodeId, nodeId].sort().join("-");
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+
+        const color = this._snrToColor(node.snr);
+        const line = L.polyline([localPos, nodePositions[nodeId]], {
+          color,
+          weight: 2.5,
+          opacity: 0.7,
+        });
+        const name = node.name || node.short_name || nodeId;
+        line.bindTooltip(`${name}: ${node.snr} dB SNR`, { sticky: true });
+        this._snrLineLayer.addLayer(line);
+      }
     }
 
-    // Use traceroute data to draw actual links
+    // Also draw links from traceroute data (hop-by-hop with per-hop SNR)
     for (const [, tr] of Object.entries(this.traceroutes || {})) {
       const allHops = [tr.from, ...(tr.route || []), tr.to];
       const snrs = tr.snr_towards || [];
@@ -1472,7 +1511,7 @@ export class MeshMapTab extends LitElement {
         const color = this._snrToColor(snr);
         const line = L.polyline([a, b], {
           color,
-          weight: 3,
+          weight: 2.5,
           opacity: 0.7,
           dashArray: snr == null ? "5,5" : null,
         });
@@ -1487,7 +1526,7 @@ export class MeshMapTab extends LitElement {
   _updateTracerouteLayer() {
     if (!this._tracerouteLayer) return;
     this._tracerouteLayer.clearLayers();
-    this._updateSnrLines(); // SNR lines use traceroute data
+    this._updateSnrLines(); // Also refresh SNR lines since they use traceroute data too
 
     const nodePositions = {};
     for (const [nodeId, node] of Object.entries(this.nodes)) {
