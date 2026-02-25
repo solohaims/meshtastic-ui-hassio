@@ -19,6 +19,9 @@ ACTIVE_NODE_WINDOW_SECONDS = 3600  # 1 hour
 SIGNAL_NEW_MESSAGE = f"{DOMAIN}_new_message"
 SIGNAL_NODE_UPDATE = f"{DOMAIN}_node_update"
 SIGNAL_CONNECTION_STATE = f"{DOMAIN}_connection_state"
+SIGNAL_DELIVERY_STATUS = f"{DOMAIN}_delivery_status"
+SIGNAL_WAYPOINT_UPDATE = f"{DOMAIN}_waypoint_update"
+SIGNAL_TRACEROUTE_RESULT = f"{DOMAIN}_traceroute_result"
 
 # WebSocket command prefix
 WS_PREFIX = f"{DOMAIN}"

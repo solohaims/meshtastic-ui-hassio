@@ -16,7 +16,15 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .connection import MeshtasticConnection
-from .const import DOMAIN, SIGNAL_NEW_MESSAGE, WS_PREFIX
+from .const import (
+    DOMAIN,
+    SIGNAL_DELIVERY_STATUS,
+    SIGNAL_NEW_MESSAGE,
+    SIGNAL_NODE_UPDATE,
+    SIGNAL_TRACEROUTE_RESULT,
+    SIGNAL_WAYPOINT_UPDATE,
+    WS_PREFIX,
+)
 from .store import MeshtasticUiStore
 
 
@@ -30,6 +38,21 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
     async_register_command(hass, ws_send_message)
     async_register_command(hass, ws_call_service)
     async_register_command(hass, ws_connection_status)
+    async_register_command(hass, ws_subscribe_nodes)
+    async_register_command(hass, ws_subscribe_delivery)
+    async_register_command(hass, ws_get_config)
+    async_register_command(hass, ws_set_config)
+    async_register_command(hass, ws_get_channels)
+    async_register_command(hass, ws_set_channel)
+    async_register_command(hass, ws_set_owner)
+    async_register_command(hass, ws_device_action)
+    async_register_command(hass, ws_node_admin)
+    async_register_command(hass, ws_get_waypoints)
+    async_register_command(hass, ws_send_waypoint)
+    async_register_command(hass, ws_delete_waypoint)
+    async_register_command(hass, ws_subscribe_waypoints)
+    async_register_command(hass, ws_get_traceroutes)
+    async_register_command(hass, ws_subscribe_traceroutes)
 
 
 def _get_store(hass: HomeAssistant) -> MeshtasticUiStore:
@@ -187,7 +210,14 @@ async def ws_nodes(
 ) -> None:
     """Return all tracked nodes."""
     store = _get_store(hass)
-    connection.send_result(msg["id"], {"nodes": store.get_nodes()})
+    connection.send_result(
+        msg["id"],
+        {
+            "nodes": store.get_nodes(),
+            "favorite_nodes": list(store.favorite_nodes),
+            "ignored_nodes": list(store.ignored_nodes),
+        },
+    )
 
 
 @websocket_command(
@@ -235,6 +265,54 @@ def ws_subscribe(
 
 @websocket_command(
     {
+        vol.Required("type"): f"{WS_PREFIX}/subscribe_nodes",
+    }
+)
+@callback
+def ws_subscribe_nodes(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Subscribe to real-time node updates."""
+
+    @callback
+    def _forward_node_update(node_id: str) -> None:
+        """Forward node update to the subscriber."""
+        store = _get_store(hass)
+        node_data = store.get_nodes().get(node_id, {})
+        connection.send_event(
+            msg["id"], {"node_id": node_id, "data": node_data}
+        )
+
+    unsub = async_dispatcher_connect(hass, SIGNAL_NODE_UPDATE, _forward_node_update)
+    connection.subscriptions[msg["id"]] = unsub
+    connection.send_result(msg["id"])
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/subscribe_delivery",
+    }
+)
+@callback
+def ws_subscribe_delivery(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Subscribe to message delivery status updates (ack/fail)."""
+
+    @callback
+    def _forward_delivery(data: dict[str, Any]) -> None:
+        """Forward delivery status to the subscriber."""
+        connection.send_event(msg["id"], data)
+
+    unsub = async_dispatcher_connect(
+        hass, SIGNAL_DELIVERY_STATUS, _forward_delivery
+    )
+    connection.subscriptions[msg["id"]] = unsub
+    connection.send_result(msg["id"])
+
+
+@websocket_command(
+    {
         vol.Required("type"): f"{WS_PREFIX}/send_message",
         vol.Required("text"): str,
         vol.Optional("channel"): int,
@@ -252,10 +330,20 @@ async def ws_send_message(
     to = msg.get("to")
 
     try:
-        await conn.async_send_text(
+        packet_id = await conn.async_send_text(
             text, destination_id=to, channel_index=channel
         )
-        connection.send_result(msg["id"], {"success": True})
+        # Register for delivery tracking
+        if packet_id is not None:
+            pending = hass.data.get(DOMAIN, {}).get("pending_acks", {})
+            pending[packet_id] = {
+                "text": text,
+                "to": to,
+                "channel": channel,
+            }
+        connection.send_result(
+            msg["id"], {"success": True, "packet_id": packet_id}
+        )
     except Exception as err:  # noqa: BLE001
         connection.send_error(msg["id"], "send_failed", str(err))
 
@@ -325,3 +413,308 @@ async def ws_connection_status(
             "connection_type": str(conn.connection_type),
         },
     )
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/get_config",
+    }
+)
+@async_response
+async def ws_get_config(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return full radio config (local_config, module_config, channels, owner, metadata)."""
+    conn = _get_connection(hass)
+    try:
+        config = await conn.async_get_config()
+        connection.send_result(msg["id"], config)
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "get_config_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/set_config",
+        vol.Required("section"): str,
+        vol.Required("values"): dict,
+    }
+)
+@async_response
+async def ws_set_config(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Write a config section to the radio."""
+    conn = _get_connection(hass)
+    try:
+        await conn.async_set_config(msg["section"], msg["values"])
+        connection.send_result(msg["id"], {"success": True})
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "set_config_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/get_channels",
+    }
+)
+@async_response
+async def ws_get_channels(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return channel config from the radio."""
+    conn = _get_connection(hass)
+    try:
+        config = await conn.async_get_config()
+        connection.send_result(msg["id"], {"channels": config.get("channels", [])})
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "get_channels_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/set_channel",
+        vol.Required("index"): int,
+        vol.Required("settings"): dict,
+    }
+)
+@async_response
+async def ws_set_channel(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Write channel settings to the radio."""
+    conn = _get_connection(hass)
+    try:
+        await conn.async_set_channel(msg["index"], msg["settings"])
+        connection.send_result(msg["id"], {"success": True})
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "set_channel_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/set_owner",
+        vol.Optional("long_name"): str,
+        vol.Optional("short_name"): str,
+        vol.Optional("is_licensed"): bool,
+    }
+)
+@async_response
+async def ws_set_owner(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Set the owner info on the radio."""
+    conn = _get_connection(hass)
+    try:
+        await conn.async_set_owner(
+            long_name=msg.get("long_name"),
+            short_name=msg.get("short_name"),
+            is_licensed=msg.get("is_licensed", False),
+        )
+        connection.send_result(msg["id"], {"success": True})
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "set_owner_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/device_action",
+        vol.Required("action"): str,
+        vol.Optional("params"): dict,
+    }
+)
+@async_response
+async def ws_device_action(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Execute a device action (reboot, shutdown, factory reset, etc)."""
+    conn = _get_connection(hass)
+    try:
+        params = msg.get("params") or {}
+        await conn.async_device_action(msg["action"], **params)
+        connection.send_result(msg["id"], {"success": True})
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "device_action_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/node_admin",
+        vol.Required("node_id"): str,
+        vol.Required("action"): str,
+    }
+)
+@async_response
+async def ws_node_admin(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Perform admin action on a remote node (favorite, ignore, remove)."""
+    conn = _get_connection(hass)
+    store = _get_store(hass)
+    node_id = msg["node_id"]
+    action = msg["action"]
+    try:
+        await conn.async_node_admin(node_id, action)
+        # Sync favorites/ignored to the local store
+        if action == "favorite":
+            store.set_favorite(node_id, True)
+        elif action == "unfavorite":
+            store.set_favorite(node_id, False)
+        elif action == "ignore":
+            store.set_ignored(node_id, True)
+        elif action == "unignore":
+            store.set_ignored(node_id, False)
+        elif action == "remove":
+            store.remove_node(node_id)
+            store.set_favorite(node_id, False)
+            store.set_ignored(node_id, False)
+        connection.send_result(msg["id"], {"success": True})
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "node_admin_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/get_waypoints",
+    }
+)
+@async_response
+async def ws_get_waypoints(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return all stored waypoints."""
+    store = _get_store(hass)
+    connection.send_result(msg["id"], {"waypoints": store.get_waypoints()})
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/send_waypoint",
+        vol.Required("latitude"): vol.Coerce(float),
+        vol.Required("longitude"): vol.Coerce(float),
+        vol.Optional("name"): str,
+        vol.Optional("description"): str,
+        vol.Optional("expire"): int,
+    }
+)
+@async_response
+async def ws_send_waypoint(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Send a waypoint to the mesh and store it."""
+    conn = _get_connection(hass)
+    store = _get_store(hass)
+    try:
+        wp_id = await conn.async_send_waypoint(
+            latitude=msg["latitude"],
+            longitude=msg["longitude"],
+            name=msg.get("name", ""),
+            description=msg.get("description", ""),
+            expire=msg.get("expire", 0),
+        )
+        wp_data = {
+            "latitude": msg["latitude"],
+            "longitude": msg["longitude"],
+            "name": msg.get("name", ""),
+            "description": msg.get("description", ""),
+            "expire": msg.get("expire", 0),
+        }
+        if wp_id is not None:
+            store.add_waypoint(wp_id, wp_data)
+            from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+            async_dispatcher_send(
+                hass,
+                SIGNAL_WAYPOINT_UPDATE,
+                {"action": "add", "waypoint_id": wp_id, **wp_data},
+            )
+        connection.send_result(
+            msg["id"], {"success": True, "waypoint_id": wp_id}
+        )
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "send_waypoint_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/delete_waypoint",
+        vol.Required("waypoint_id"): int,
+    }
+)
+@async_response
+async def ws_delete_waypoint(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Delete a waypoint from the mesh and store."""
+    conn = _get_connection(hass)
+    store = _get_store(hass)
+    wp_id = msg["waypoint_id"]
+    try:
+        await conn.async_delete_waypoint(wp_id)
+        store.remove_waypoint(wp_id)
+        from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+        async_dispatcher_send(
+            hass,
+            SIGNAL_WAYPOINT_UPDATE,
+            {"action": "delete", "waypoint_id": wp_id},
+        )
+        connection.send_result(msg["id"], {"success": True})
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "delete_waypoint_failed", str(err))
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/subscribe_waypoints",
+    }
+)
+@callback
+def ws_subscribe_waypoints(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Subscribe to waypoint updates."""
+
+    @callback
+    def _forward_waypoint(data: dict[str, Any]) -> None:
+        connection.send_event(msg["id"], data)
+
+    unsub = async_dispatcher_connect(hass, SIGNAL_WAYPOINT_UPDATE, _forward_waypoint)
+    connection.subscriptions[msg["id"]] = unsub
+    connection.send_result(msg["id"])
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/get_traceroutes",
+    }
+)
+@async_response
+async def ws_get_traceroutes(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return all stored traceroute results."""
+    store = _get_store(hass)
+    connection.send_result(msg["id"], {"traceroutes": store.get_all_traceroutes()})
+
+
+@websocket_command(
+    {
+        vol.Required("type"): f"{WS_PREFIX}/subscribe_traceroutes",
+    }
+)
+@callback
+def ws_subscribe_traceroutes(
+    hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Subscribe to traceroute result updates."""
+
+    @callback
+    def _forward_traceroute(data: dict[str, Any]) -> None:
+        connection.send_event(msg["id"], data)
+
+    unsub = async_dispatcher_connect(
+        hass, SIGNAL_TRACEROUTE_RESULT, _forward_traceroute
+    )
+    connection.subscriptions[msg["id"]] = unsub
+    connection.send_result(msg["id"])

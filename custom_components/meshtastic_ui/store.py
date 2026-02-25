@@ -32,6 +32,10 @@ class MeshtasticUiStore:
         self._nodes: dict[str, dict[str, Any]] = {}
         self._messages_today: int = 0
         self._counter_date: str = ""
+        self._favorite_nodes: set[str] = set()
+        self._ignored_nodes: set[str] = set()
+        self._waypoints: dict[int, dict[str, Any]] = {}  # wp_id -> waypoint data
+        self._traceroutes: dict[str, dict[str, Any]] = {}  # node_id -> last traceroute
 
     async def async_load(self) -> None:
         """Load stored data from disk."""
@@ -68,6 +72,21 @@ class MeshtasticUiStore:
             self._messages_today = 0
         self._counter_date = today
 
+        # Restore favorites and ignored
+        self._favorite_nodes = set(data.get("favorite_nodes", []))
+        self._ignored_nodes = set(data.get("ignored_nodes", []))
+
+        # Restore waypoints, prune expired
+        now_ts = int(now.timestamp())
+        for wp_id_str, wp_data in data.get("waypoints", {}).items():
+            expire = wp_data.get("expire", 0)
+            if expire > 0 and expire < now_ts:
+                continue
+            self._waypoints[int(wp_id_str)] = wp_data
+
+        # Restore traceroutes
+        self._traceroutes = data.get("traceroutes", {})
+
     def _schedule_save(self) -> None:
         """Schedule a debounced save to disk."""
         self._store.async_delay_save(self._data_to_save, SAVE_DELAY)
@@ -84,6 +103,10 @@ class MeshtasticUiStore:
             "nodes": self._nodes,
             "messages_today": self._messages_today,
             "counter_date": self._counter_date,
+            "favorite_nodes": list(self._favorite_nodes),
+            "ignored_nodes": list(self._ignored_nodes),
+            "waypoints": {str(k): v for k, v in self._waypoints.items()},
+            "traceroutes": self._traceroutes,
         }
 
     def add_channel_message(self, entity_id: str, message: dict[str, Any]) -> None:
@@ -185,6 +208,70 @@ class MeshtasticUiStore:
     def channel_count(self) -> int:
         """Return number of known channels."""
         return len(self._channel_messages)
+
+    @property
+    def favorite_nodes(self) -> set[str]:
+        """Return the set of favorite node IDs."""
+        return set(self._favorite_nodes)
+
+    @property
+    def ignored_nodes(self) -> set[str]:
+        """Return the set of ignored node IDs."""
+        return set(self._ignored_nodes)
+
+    def set_favorite(self, node_id: str, is_favorite: bool) -> None:
+        """Add or remove a node from favorites."""
+        if is_favorite:
+            self._favorite_nodes.add(node_id)
+        else:
+            self._favorite_nodes.discard(node_id)
+        self._schedule_save()
+
+    def set_ignored(self, node_id: str, is_ignored: bool) -> None:
+        """Add or remove a node from ignored list."""
+        if is_ignored:
+            self._ignored_nodes.add(node_id)
+        else:
+            self._ignored_nodes.discard(node_id)
+        self._schedule_save()
+
+    def add_waypoint(self, waypoint_id: int, data: dict[str, Any]) -> None:
+        """Add or update a waypoint."""
+        self._waypoints[waypoint_id] = data
+        self._schedule_save()
+
+    def remove_waypoint(self, waypoint_id: int) -> None:
+        """Remove a waypoint."""
+        if waypoint_id in self._waypoints:
+            del self._waypoints[waypoint_id]
+            self._schedule_save()
+
+    def get_waypoints(self) -> dict[int, dict[str, Any]]:
+        """Get all waypoints, pruning expired ones."""
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        expired = [
+            wp_id for wp_id, wp in self._waypoints.items()
+            if wp.get("expire", 0) > 0 and wp["expire"] < now_ts
+        ]
+        for wp_id in expired:
+            del self._waypoints[wp_id]
+        if expired:
+            self._schedule_save()
+        return dict(self._waypoints)
+
+    def set_traceroute(self, node_id: str, data: dict[str, Any]) -> None:
+        """Store a traceroute result for a node."""
+        data["_timestamp"] = datetime.now(timezone.utc).isoformat()
+        self._traceroutes[node_id] = data
+        self._schedule_save()
+
+    def get_traceroute(self, node_id: str) -> dict[str, Any] | None:
+        """Get the last traceroute result for a node."""
+        return self._traceroutes.get(node_id)
+
+    def get_all_traceroutes(self) -> dict[str, dict[str, Any]]:
+        """Get all stored traceroute results."""
+        return dict(self._traceroutes)
 
     def _check_date_rollover(self) -> None:
         """Reset daily counter if date has changed."""

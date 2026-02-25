@@ -165,22 +165,25 @@ class MeshtasticConnection:
         text: str,
         destination_id: str | None = None,
         channel_index: int = 0,
-    ) -> None:
-        """Send a text message via the radio."""
+    ) -> int | None:
+        """Send a text message via the radio. Returns the packet ID if available."""
         if self._interface is None:
             raise RuntimeError("Not connected to radio")
 
         iface = self._interface
 
-        def _send() -> None:
+        def _send() -> int | None:
             if destination_id:
-                iface.sendText(
+                meshPacket = iface.sendText(
                     text, destinationId=destination_id, channelIndex=channel_index
                 )
             else:
-                iface.sendText(text, channelIndex=channel_index)
+                meshPacket = iface.sendText(text, channelIndex=channel_index)
+            if meshPacket and hasattr(meshPacket, "id"):
+                return meshPacket.id
+            return None
 
-        await self._hass.async_add_executor_job(_send)
+        return await self._hass.async_add_executor_job(_send)
 
     async def async_send_traceroute(self, destination_id: str) -> None:
         """Send a traceroute request."""
@@ -205,6 +208,258 @@ class MeshtasticConnection:
             iface.sendPosition(destinationId=destination_id, wantResponse=True)
 
         await self._hass.async_add_executor_job(_request)
+
+    async def async_get_config(self) -> dict[str, Any]:
+        """Read full config from the radio (local, module, channels, owner, metadata)."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _read() -> dict[str, Any]:
+            from google.protobuf.json_format import MessageToDict
+
+            node = iface.localNode
+            result: dict[str, Any] = {}
+
+            # Local config sections
+            if node.localConfig:
+                result["local_config"] = MessageToDict(
+                    node.localConfig, preserving_proto_field_name=True
+                )
+            else:
+                result["local_config"] = {}
+
+            # Module config sections
+            if node.moduleConfig:
+                result["module_config"] = MessageToDict(
+                    node.moduleConfig, preserving_proto_field_name=True
+                )
+            else:
+                result["module_config"] = {}
+
+            # Channels
+            channels = []
+            for ch in node.channels or []:
+                channels.append(MessageToDict(ch, preserving_proto_field_name=True))
+            result["channels"] = channels
+
+            # Owner info
+            my_node = iface.getMyNodeInfo() or {}
+            result["owner"] = my_node.get("user", {})
+
+            # Device metadata
+            try:
+                result["metadata"] = dict(iface.metadata or {})
+            except Exception:  # noqa: BLE001
+                result["metadata"] = {}
+
+            return result
+
+        return await self._hass.async_add_executor_job(_read)
+
+    async def async_set_config(self, section: str, values: dict[str, Any]) -> None:
+        """Write a config section to the radio."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _write() -> None:
+            node = iface.localNode
+
+            # Determine if this is a local_config or module_config section
+            local_sections = {
+                "device", "position", "power", "network",
+                "display", "lora", "bluetooth", "security",
+            }
+            module_sections = {
+                "mqtt", "serial", "external_notification", "store_forward",
+                "range_test", "telemetry", "canned_message", "audio",
+                "neighbor_info", "detection_sensor", "ambient_lighting",
+                "paxcounter",
+            }
+
+            if section in local_sections:
+                config_obj = getattr(node.localConfig, section, None)
+            elif section in module_sections:
+                config_obj = getattr(node.moduleConfig, section, None)
+            else:
+                raise ValueError(f"Unknown config section: {section}")
+
+            if config_obj is None:
+                raise ValueError(f"Config section '{section}' not found on node")
+
+            for key, value in values.items():
+                if hasattr(config_obj, key):
+                    setattr(config_obj, key, value)
+                else:
+                    _LOGGER.warning(
+                        "Unknown config field '%s' in section '%s'", key, section
+                    )
+
+            node.writeConfig(section)
+
+        await self._hass.async_add_executor_job(_write)
+
+    async def async_set_channel(self, index: int, settings: dict[str, Any]) -> None:
+        """Write channel settings to the radio."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _write() -> None:
+            node = iface.localNode
+            channels = node.channels
+            if not channels or index >= len(channels):
+                raise ValueError(f"Channel index {index} out of range")
+
+            ch = channels[index]
+            ch_settings = ch.settings
+
+            for key, value in settings.items():
+                if key == "role":
+                    ch.role = value
+                elif key == "psk":
+                    if isinstance(value, str):
+                        import base64
+                        ch_settings.psk = base64.b64decode(value)
+                    elif isinstance(value, bytes):
+                        ch_settings.psk = value
+                elif hasattr(ch_settings, key):
+                    setattr(ch_settings, key, value)
+                else:
+                    _LOGGER.warning("Unknown channel setting: %s", key)
+
+            node.writeChannel(index)
+
+        await self._hass.async_add_executor_job(_write)
+
+    async def async_set_owner(
+        self,
+        long_name: str | None = None,
+        short_name: str | None = None,
+        is_licensed: bool = False,
+    ) -> None:
+        """Set the owner info on the radio."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _write() -> None:
+            iface.localNode.setOwner(
+                long_name=long_name,
+                short_name=short_name,
+                is_licensed=is_licensed,
+            )
+
+        await self._hass.async_add_executor_job(_write)
+
+    async def async_device_action(self, action: str, **kwargs: Any) -> None:
+        """Execute a device action (reboot, shutdown, factory reset, etc)."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _execute() -> None:
+            node = iface.localNode
+            if action == "reboot":
+                node.reboot(kwargs.get("seconds", 5))
+            elif action == "shutdown":
+                node.shutdown(kwargs.get("seconds", 5))
+            elif action == "factory_reset_config":
+                node.factoryReset()
+            elif action == "factory_reset_device":
+                node.factoryReset()
+                node.resetNodeDb()
+            elif action == "reboot_ota":
+                node.rebootOTA(kwargs.get("seconds", 5))
+            elif action == "reset_nodedb":
+                node.resetNodeDb()
+            else:
+                raise ValueError(f"Unknown device action: {action}")
+
+        await self._hass.async_add_executor_job(_execute)
+
+    async def async_send_waypoint(
+        self,
+        latitude: float,
+        longitude: float,
+        name: str = "",
+        description: str = "",
+        expire: int = 0,
+        waypoint_id: int | None = None,
+    ) -> int | None:
+        """Send a waypoint to the mesh. Returns the waypoint ID."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _send() -> int | None:
+            from meshtastic.protobuf import mesh_pb2
+
+            wp = mesh_pb2.Waypoint()
+            wp.latitude_i = int(latitude * 1e7)
+            wp.longitude_i = int(longitude * 1e7)
+            if name:
+                wp.name = name
+            if description:
+                wp.description = description
+            if expire > 0:
+                wp.expire = expire
+            if waypoint_id is not None:
+                wp.id = waypoint_id
+
+            meshPacket = iface.sendWaypoint(wp)
+            if meshPacket and hasattr(meshPacket, "id"):
+                return meshPacket.id
+            return wp.id if wp.id else None
+
+        return await self._hass.async_add_executor_job(_send)
+
+    async def async_delete_waypoint(self, waypoint_id: int) -> None:
+        """Delete a waypoint from the mesh."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _delete() -> None:
+            from meshtastic.protobuf import mesh_pb2
+
+            wp = mesh_pb2.Waypoint()
+            wp.id = waypoint_id
+            wp.expire = 1  # Set to already expired to signal deletion
+            iface.sendWaypoint(wp)
+
+        await self._hass.async_add_executor_job(_delete)
+
+    async def async_node_admin(self, node_id: str, action: str) -> None:
+        """Perform admin action on a remote node."""
+        if self._interface is None:
+            raise RuntimeError("Not connected to radio")
+
+        iface = self._interface
+
+        def _execute() -> None:
+            if action == "favorite":
+                iface.localNode.setFavorite(node_id, True)
+            elif action == "unfavorite":
+                iface.localNode.setFavorite(node_id, False)
+            elif action == "ignore":
+                iface.localNode.setIgnored(node_id, True)
+            elif action == "unignore":
+                iface.localNode.setIgnored(node_id, False)
+            elif action == "remove":
+                iface.localNode.removeNode(node_id)
+            else:
+                raise ValueError(f"Unknown node admin action: {action}")
+
+        await self._hass.async_add_executor_job(_execute)
 
     def _create_interface(self) -> Any:
         """Create a meshtastic interface (runs in executor)."""

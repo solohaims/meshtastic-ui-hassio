@@ -20,8 +20,11 @@ from .const import (
     DEFAULT_TCP_PORT,
     DOMAIN,
     SIGNAL_CONNECTION_STATE,
+    SIGNAL_DELIVERY_STATUS,
     SIGNAL_NEW_MESSAGE,
     SIGNAL_NODE_UPDATE,
+    SIGNAL_TRACEROUTE_RESULT,
+    SIGNAL_WAYPOINT_UPDATE,
 )
 from .frontend import async_register_panel, async_unregister_panel
 from .store import MeshtasticUiStore
@@ -50,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "store": store,
         "connection": connection,
         "unsub_callbacks": [],
+        "pending_acks": {},  # packet_id -> message info for delivery tracking
     }
 
     # Register radio callbacks
@@ -138,6 +142,18 @@ def _register_radio_callbacks(
 
         if portnum == "TEXT_MESSAGE_APP":
             _handle_text_message(hass, store, packet)
+
+        # Handle delivery acknowledgements
+        if portnum == "ROUTING_APP":
+            _handle_delivery_ack(hass, packet)
+
+        # Handle traceroute responses
+        if portnum == "TRACEROUTE_APP":
+            _handle_traceroute(hass, store, packet)
+
+        # Handle waypoints
+        if portnum == "WAYPOINT_APP":
+            _handle_waypoint(hass, store, packet)
 
         # Track sender as a node
         sender_id = packet.get("fromId")
@@ -233,6 +249,127 @@ def _handle_text_message(
             SIGNAL_NEW_MESSAGE,
             {"type": "dm", "partner": sender_id, **message},
         )
+
+
+@callback
+def _handle_delivery_ack(hass: HomeAssistant, packet: dict) -> None:
+    """Handle a routing/ack packet to update message delivery status."""
+    decoded = packet.get("decoded", {})
+    routing = decoded.get("routing", {})
+    request_id = packet.get("requestId") or decoded.get("requestId")
+
+    if not request_id:
+        return
+
+    pending = hass.data.get(DOMAIN, {}).get("pending_acks", {})
+    if request_id not in pending:
+        return
+
+    msg_info = pending.pop(request_id)
+    error_reason = routing.get("errorReason")
+
+    if error_reason and error_reason != "NONE":
+        status = "failed"
+    else:
+        status = "delivered"
+
+    async_dispatcher_send(
+        hass,
+        SIGNAL_DELIVERY_STATUS,
+        {
+            "packet_id": request_id,
+            "status": status,
+            "error": error_reason,
+            **msg_info,
+        },
+    )
+
+
+@callback
+def _handle_traceroute(
+    hass: HomeAssistant, store: MeshtasticUiStore, packet: dict
+) -> None:
+    """Handle a traceroute response packet."""
+    decoded = packet.get("decoded", {})
+    traceroute = decoded.get("traceroute", {})
+    if not traceroute:
+        return
+
+    from_id = packet.get("fromId", "")
+    to_id = packet.get("toId", "")
+
+    # Extract route hops (list of node IDs)
+    route = traceroute.get("route", [])
+    route_back = traceroute.get("routeBack", [])
+    snr_towards = traceroute.get("snrTowards", [])
+    snr_back = traceroute.get("snrBack", [])
+
+    # Convert numeric node IDs to hex format
+    route_ids = [_num_to_id(n) if isinstance(n, int) else str(n) for n in route]
+    route_back_ids = [
+        _num_to_id(n) if isinstance(n, int) else str(n) for n in route_back
+    ]
+
+    result = {
+        "from": from_id,
+        "to": to_id,
+        "route": route_ids,
+        "route_back": route_back_ids,
+        "snr_towards": list(snr_towards),
+        "snr_back": list(snr_back),
+    }
+
+    # Store keyed by the destination node
+    store.set_traceroute(from_id, result)
+
+    async_dispatcher_send(hass, SIGNAL_TRACEROUTE_RESULT, result)
+
+
+@callback
+def _handle_waypoint(
+    hass: HomeAssistant, store: MeshtasticUiStore, packet: dict
+) -> None:
+    """Handle a waypoint packet from the mesh."""
+    decoded = packet.get("decoded", {})
+    waypoint = decoded.get("waypoint", {})
+    if not waypoint:
+        return
+
+    wp_id = waypoint.get("id")
+    if not wp_id:
+        return
+
+    expire = waypoint.get("expire", 0)
+    lat = waypoint.get("latitudeI", 0) / 1e7
+    lon = waypoint.get("longitudeI", 0) / 1e7
+    name = waypoint.get("name", "")
+    description = waypoint.get("description", "")
+
+    # Check if this is a deletion (expire=1 means already expired)
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    if expire > 0 and expire <= now_ts:
+        store.remove_waypoint(wp_id)
+        async_dispatcher_send(
+            hass,
+            SIGNAL_WAYPOINT_UPDATE,
+            {"action": "delete", "waypoint_id": wp_id},
+        )
+        return
+
+    wp_data: dict[str, Any] = {
+        "latitude": lat,
+        "longitude": lon,
+        "name": name,
+        "description": description,
+        "expire": expire,
+        "from": packet.get("fromId", "unknown"),
+    }
+    store.add_waypoint(wp_id, wp_data)
+    async_dispatcher_send(
+        hass,
+        SIGNAL_WAYPOINT_UPDATE,
+        {"action": "add", "waypoint_id": wp_id, **wp_data},
+    )
 
 
 def _sync_nodes_from_radio(
