@@ -112,8 +112,14 @@ class MeshtasticUiPanel extends LitElement {
     const result = await this._wsCommand("meshtastic_ui/gateways");
     if (result) {
       this._gateways = result.gateways || [];
-      if (this._gateways.length > 0 && this._gateways[0].node_id) {
-        this._localNodeId = this._gateways[0].node_id;
+      if (this._gateways.length > 0) {
+        const gw = this._gateways[0];
+        if (gw.node_id) this._localNodeId = gw.node_id;
+        // Seed time-series snapshots from gateway sensors so charts show data immediately
+        const s = gw.sensors || {};
+        if (s.channel_utilization != null) this._tsSnapshots.channelUtil = s.channel_utilization;
+        if (s.air_util_tx != null) this._tsSnapshots.airtimeTx = s.air_util_tx;
+        if (s.battery != null) this._tsSnapshots.battery = Math.min(s.battery, 100);
       }
     }
   }
@@ -234,7 +240,7 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   _handleRealtimeMessage(data) {
-    this._tsAccumulators.packetRx++;
+    if (!data._outgoing) this._tsAccumulators.packetRx++;
 
     const key = data.type === "dm" ? data.partner : data.channel;
     if (!key) return;
@@ -324,15 +330,6 @@ class MeshtasticUiPanel extends LitElement {
         ...this._deliveryStatuses,
         [result.packet_id]: { status: "pending" },
       };
-      // Attach packet_id to the most recent message in this conversation
-      const msgs = this._messages[conversation];
-      if (msgs && msgs.length > 0) {
-        const lastMsg = msgs[msgs.length - 1];
-        if (!lastMsg.packet_id) {
-          lastMsg.packet_id = result.packet_id;
-          this._messages = { ...this._messages };
-        }
-      }
     }
   }
 

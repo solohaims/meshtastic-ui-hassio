@@ -13,7 +13,10 @@ from homeassistant.components.websocket_api import (
     websocket_command,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.dispatcher import (
+    async_dispatcher_connect,
+    async_dispatcher_send,
+)
 
 from .connection import MeshtasticConnection
 from .const import (
@@ -331,10 +334,20 @@ async def ws_send_message(
     hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
 ) -> None:
     """Send a message via the radio."""
+    from datetime import datetime, timezone
+
     conn = _get_connection(hass)
+    store = _get_store(hass)
     text = msg["text"]
     channel = msg.get("channel", 0)
     to = msg.get("to")
+
+    # Determine local node ID for the outgoing message
+    local_node_id = None
+    my_info = conn.my_info
+    node_num = my_info.get("num")
+    if node_num is not None:
+        local_node_id = f"!{node_num:08x}"
 
     try:
         packet_id = await conn.async_send_text(
@@ -348,6 +361,39 @@ async def ws_send_message(
                 "to": to,
                 "channel": channel,
             }
+
+        # Store and dispatch the outgoing message so the UI shows it
+        timestamp = datetime.now(timezone.utc).isoformat()
+        out_msg: dict[str, Any] = {
+            "text": text,
+            "from": local_node_id or "local",
+            "timestamp": timestamp,
+            "_outgoing": True,
+        }
+        if packet_id is not None:
+            out_msg["packet_id"] = packet_id
+
+        if to:
+            # DM
+            out_msg["to"] = to
+            store.add_dm_message(to, out_msg)
+            async_dispatcher_send(
+                hass,
+                SIGNAL_NEW_MESSAGE,
+                {"type": "dm", "partner": to, **out_msg},
+            )
+        else:
+            # Channel broadcast
+            out_msg["to"] = "^all"
+            out_msg["channel"] = channel
+            channel_key = str(channel)
+            store.add_channel_message(channel_key, out_msg)
+            async_dispatcher_send(
+                hass,
+                SIGNAL_NEW_MESSAGE,
+                {"type": "channel", "channel": channel_key, **out_msg},
+            )
+
         connection.send_result(
             msg["id"], {"success": True, "packet_id": packet_id}
         )

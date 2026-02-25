@@ -412,6 +412,45 @@ export const settingsStyles = css`
     padding-top: 24px;
     border-top: 1px solid var(--divider-color);
   }
+
+  @media (max-width: 600px) {
+    .settings-layout {
+      flex-direction: column;
+      height: auto;
+    }
+    .settings-nav {
+      width: auto;
+      flex-shrink: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: flex;
+      gap: 4px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .settings-nav-group {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+    .settings-nav-header {
+      display: none;
+    }
+    .settings-nav-item {
+      white-space: nowrap;
+      padding: 6px 12px;
+      font-size: 13px;
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+    .settings-content {
+      overflow-y: visible;
+    }
+    .settings-panel-body {
+      padding: 12px;
+    }
+  }
 `;
 
 /* ── Badges ── */

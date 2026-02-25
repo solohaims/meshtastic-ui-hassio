@@ -285,7 +285,7 @@ export class MeshRadioTab extends LitElement {
         <div class="gateway-section">
           <div class="section-title">Metrics</div>
           <div class="metrics-grid">
-            ${renderMetric("Battery", sensors.battery, "%")}
+            ${renderMetric("Battery", sensors.battery != null ? Math.min(sensors.battery, 100) : null, "%")}
             ${renderMetric("Voltage", sensors.voltage, " V")}
             ${renderMetric("Ch. Utilization", sensors.channel_utilization, "%")}
             ${renderMetric("Airtime", sensors.air_util_tx || sensors.airtime, "%")}
@@ -930,7 +930,7 @@ export class MeshNodesTab extends LitElement {
                     <td>${node.snr ?? "\u2014"}</td>
                     <td class="col-rssi">${node.rssi ?? "\u2014"}</td>
                     <td>${node.hops ?? "\u2014"}</td>
-                    <td>${node.battery != null ? `${node.battery}%` : "\u2014"}</td>
+                    <td>${node.battery != null ? `${Math.min(node.battery, 100)}%` : "\u2014"}</td>
                     <td>${formatLastSeen(node._last_seen)}</td>
                   </tr>
                 `;
@@ -1075,7 +1075,7 @@ export class MeshNodesTab extends LitElement {
             <div class="dialog-section">
               <div class="section-title">Power</div>
               <div class="metrics-grid">
-                ${renderMetric("Battery", node.battery, "%")}
+                ${renderMetric("Battery", node.battery != null ? Math.min(node.battery, 100) : null, "%")}
                 ${renderMetric("Voltage", node.voltage, " V")}
                 ${renderMetric("Uptime", node.uptime ? formatUptime(node.uptime) : null)}
               </div>
@@ -1215,6 +1215,7 @@ export class MeshMapTab extends LitElement {
         .map-controls {
           position: absolute; top: 10px; left: 50px; z-index: 1000;
           display: flex; gap: 4px; flex-wrap: wrap;
+          max-width: calc(100% - 60px);
         }
         .layer-btn {
           padding: 5px 10px; border-radius: 6px; font-size: 11px;
@@ -1227,6 +1228,17 @@ export class MeshMapTab extends LitElement {
           border-color: var(--primary-color);
         }
         .layer-btn:hover { opacity: 0.85; }
+
+        @media (max-width: 600px) {
+          .map-controls {
+            top: auto; bottom: 10px; left: 10px;
+            max-width: calc(100% - 20px);
+          }
+          .map-info-badge {
+            top: 10px; right: 10px; left: auto;
+            font-size: 11px; padding: 4px 8px;
+          }
+        }
 
         .traceroute-dialog {
           position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -1503,7 +1515,7 @@ export class MeshMapTab extends LitElement {
           <strong style="font-size:14px;">${name}</strong>
           <div style="font-size:11px;color:#888;margin-bottom:6px;">${nodeId}</div>
           <table style="font-size:12px;border-collapse:collapse;width:100%;">
-            ${node.battery != null ? `<tr><td style="padding:1px 8px 1px 0;color:#888;">Battery</td><td>${node.battery}%</td></tr>` : ""}
+            ${node.battery != null ? `<tr><td style="padding:1px 8px 1px 0;color:#888;">Battery</td><td>${Math.min(node.battery, 100)}%</td></tr>` : ""}
             ${node.snr != null ? `<tr><td style="padding:1px 8px 1px 0;color:#888;">SNR</td><td>${node.snr} dB</td></tr>` : ""}
             ${node.rssi != null ? `<tr><td style="padding:1px 8px 1px 0;color:#888;">RSSI</td><td>${node.rssi} dBm</td></tr>` : ""}
             ${node.hops != null ? `<tr><td style="padding:1px 8px 1px 0;color:#888;">Hops</td><td>${node.hops}</td></tr>` : ""}
