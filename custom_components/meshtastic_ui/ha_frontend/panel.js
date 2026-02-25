@@ -277,8 +277,8 @@ class MeshtasticUiPanel extends LitElement {
     const data = { text };
     if (this._dms.includes(conversation)) {
       data.to = conversation;
-    } else if (conversation) {
-      data.channel = conversation;
+    } else {
+      data.channel = parseInt(conversation, 10) || 0;
     }
     const result = await this._wsCommand("meshtastic_ui/send_message", data);
     if (result?.packet_id) {

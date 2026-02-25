@@ -397,42 +397,33 @@ export class MeshMessagesTab extends LitElement {
   }
 
   render() {
-    const allConversations = [...this.channels, ...this.dms];
-    if (!allConversations.length) {
-      return html`
-        <div class="empty-state">
-          <ha-icon icon="mdi:message-text-outline"></ha-icon>
-          <div>No messages yet</div>
-          <div style="font-size: 13px; margin-top: 8px;">
-            Messages will appear here as they arrive from the mesh network.
-          </div>
-        </div>
-      `;
-    }
-
-    const selected = this.selectedConversation || allConversations[0] || "";
+    // Always show at least the default channel (0) so users can send messages
+    const defaultChannels = this.channels.length ? this.channels : ["0"];
+    const allConversations = [...defaultChannels, ...this.dms];
+    const selected = this.selectedConversation || allConversations[0] || "0";
     const currentMessages = this.messages[selected] || [];
 
     return html`
       <div class="messages-layout">
         <div class="conversation-list">
-          ${this.channels.length ? html`
-            <div class="conversation-header">Channels</div>
-            ${this.channels.map((ch) => html`
-              <div
-                class="conversation-item ${selected === ch ? "active" : ""}"
-                @click=${() => this._selectConversation(ch)}
-              >${ch}</div>
-            `)}
-          ` : ""}
+          <div class="conversation-header">Channels</div>
+          ${defaultChannels.map((ch) => html`
+            <div
+              class="conversation-item ${selected === ch ? "active" : ""}"
+              @click=${() => this._selectConversation(ch)}
+            >${ch === "0" ? "Primary" : ch}</div>
+          `)}
           ${this.dms.length ? html`
             <div class="conversation-header">Direct Messages</div>
-            ${this.dms.map((dm) => html`
-              <div
-                class="conversation-item ${selected === dm ? "active" : ""}"
-                @click=${() => this._selectConversation(dm)}
-              >${dm}</div>
-            `)}
+            ${this.dms.map((dm) => {
+              const name = this._getNodeName(dm) || dm;
+              return html`
+                <div
+                  class="conversation-item ${selected === dm ? "active" : ""}"
+                  @click=${() => this._selectConversation(dm)}
+                >${name}</div>
+              `;
+            })}
           ` : ""}
         </div>
 
@@ -453,7 +444,13 @@ export class MeshMessagesTab extends LitElement {
               `;
             })}
             ${!currentMessages.length ? html`
-              <div class="empty-state"><div>No messages in this conversation</div></div>
+              <div class="empty-state">
+                <ha-icon icon="mdi:message-text-outline"></ha-icon>
+                <div>No messages yet</div>
+                <div style="font-size: 13px; margin-top: 8px;">
+                  Send a message below or wait for messages from the mesh.
+                </div>
+              </div>
             ` : ""}
           </div>
 
@@ -492,8 +489,9 @@ export class MeshMessagesTab extends LitElement {
 
   _sendMessage() {
     if (!this._messageInput.trim()) return;
-    const allConversations = [...this.channels, ...this.dms];
-    const selected = this.selectedConversation || allConversations[0] || "";
+    const defaultChannels = this.channels.length ? this.channels : ["0"];
+    const allConversations = [...defaultChannels, ...this.dms];
+    const selected = this.selectedConversation || allConversations[0] || "0";
     this.dispatchEvent(
       new CustomEvent("send-message", {
         detail: { text: this._messageInput, conversation: selected },
