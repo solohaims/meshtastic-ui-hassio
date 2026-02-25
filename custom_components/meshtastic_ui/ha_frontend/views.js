@@ -1933,14 +1933,14 @@ class MeshHorizonChart extends LitElement {
 
     for (let i = 0; i < len; i++) {
       const val = Math.min(arr[i], max);
-      const scaled = (val / max) * (bandH * this.bands);
-      let remaining = scaled;
+      const totalH = (val / max) * h;
+      let drawn = 0;
 
-      for (let b = 0; b < this.bands && remaining > 0; b++) {
-        const layerH = Math.min(remaining, bandH);
+      for (let b = 0; b < this.bands && drawn < totalH; b++) {
+        const layerH = Math.min(totalH - drawn, bandH);
         ctx.fillStyle = colors[b];
-        ctx.fillRect(i * colW, h - layerH, colW + 0.5, layerH);
-        remaining -= bandH;
+        ctx.fillRect(i * colW, h - drawn - layerH, colW + 0.5, layerH);
+        drawn += layerH;
       }
     }
 
