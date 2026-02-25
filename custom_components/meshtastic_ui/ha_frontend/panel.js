@@ -44,7 +44,12 @@ class MeshtasticUiPanel extends LitElement {
       _showNotificationModal: { type: Boolean },
       _nodeDialogId: { type: String },
       _nodeDialogFeedback: { type: String },
+      _chartWindow: { type: Number },
     };
+  }
+
+  get _chartInterval() {
+    return Math.max(2, Math.round(this._chartWindow / 150));
   }
 
   constructor() {
@@ -70,6 +75,7 @@ class MeshtasticUiPanel extends LitElement {
     this._showNotificationModal = false;
     this._nodeDialogId = null;
     this._nodeDialogFeedback = "";
+    this._chartWindow = parseInt(localStorage.getItem("meshtastic_chart_window"), 10) || 300;
     this._timeSeries = {
       channelUtil: new Float64Array(150),
       airtimeTx: new Float64Array(150),
@@ -90,7 +96,7 @@ class MeshtasticUiPanel extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._loadData();
-    this._tsIntervalId = setInterval(() => this._flushTimeSeries(), 2000);
+    this._tsIntervalId = setInterval(() => this._flushTimeSeries(), this._chartInterval * 1000);
   }
 
   disconnectedCallback() {
@@ -354,6 +360,23 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   /* ── Event handlers from child components ── */
+
+  _onChartWindowChange(e) {
+    this._chartWindow = e.detail.window;
+    localStorage.setItem("meshtastic_chart_window", String(this._chartWindow));
+    // Reset time-series arrays
+    this._timeSeries = {
+      channelUtil: new Float64Array(150),
+      airtimeTx: new Float64Array(150),
+      battery: new Float64Array(150),
+      packetTx: new Float64Array(150),
+      packetRx: new Float64Array(150),
+    };
+    this._tsAccumulators = { packetRx: 0, packetTx: 0 };
+    // Restart interval timer with new cadence
+    if (this._tsIntervalId) clearInterval(this._tsIntervalId);
+    this._tsIntervalId = setInterval(() => this._flushTimeSeries(), this._chartInterval * 1000);
+  }
 
   _onSelectConversation(e) {
     const conv = e.detail.conversation;
@@ -748,7 +771,13 @@ class MeshtasticUiPanel extends LitElement {
   _renderActiveTab() {
     switch (this._activeTab) {
       case "radio":
-        return html`<mesh-radio-tab .gateways=${this._gateways} .timeSeries=${this._timeSeries}></mesh-radio-tab>`;
+        return html`<mesh-radio-tab
+          .gateways=${this._gateways}
+          .timeSeries=${this._timeSeries}
+          .chartWindow=${this._chartWindow}
+          .chartInterval=${this._chartInterval}
+          @chart-window-change=${this._onChartWindowChange}
+        ></mesh-radio-tab>`;
       case "messages":
         return html`
           <mesh-messages-tab

@@ -118,6 +118,8 @@ export class MeshRadioTab extends LitElement {
     return {
       gateways: { type: Array },
       timeSeries: { type: Object },
+      chartWindow: { type: Number },
+      chartInterval: { type: Number },
     };
   }
 
@@ -125,6 +127,8 @@ export class MeshRadioTab extends LitElement {
     super();
     this.gateways = [];
     this.timeSeries = null;
+    this.chartWindow = 300;
+    this.chartInterval = 2;
   }
 
   static get styles() {
@@ -188,11 +192,25 @@ export class MeshRadioTab extends LitElement {
           gap: 16px;
           margin-top: 16px;
         }
+        .charts-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
         .charts-heading {
           font-size: 14px;
           font-weight: 500;
           color: var(--secondary-text-color);
-          margin-bottom: 4px;
+        }
+        .window-select {
+          padding: 3px 6px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--card-background-color);
+          color: var(--primary-text-color);
+          font-size: 12px;
+          cursor: pointer;
         }
 
         .table-scroll { overflow-x: auto; }
@@ -221,10 +239,28 @@ export class MeshRadioTab extends LitElement {
       `;
     }
     const ts = this.timeSeries;
+    const windowLabel = this.chartWindow >= 3600
+      ? `${this.chartWindow / 3600}h`
+      : `${this.chartWindow / 60} min`;
+    const pktUnit = `pkts/${this.chartInterval}s`;
     return html`
       ${this.gateways.map((gw) => this._renderGatewayCard(gw))}
       ${ts ? html`
-        <div class="charts-heading">Real-Time Activity (5 min window)</div>
+        <div class="charts-header">
+          <span class="charts-heading">Real-Time Activity (${windowLabel} window)</span>
+          <select class="window-select"
+            @change=${(e) => this.dispatchEvent(new CustomEvent("chart-window-change", {
+              detail: { window: parseInt(e.target.value, 10) },
+              bubbles: true, composed: true,
+            }))}>
+            ${[
+              { val: 300, label: "5 min" },
+              { val: 900, label: "15 min" },
+              { val: 1800, label: "30 min" },
+              { val: 3600, label: "1 hour" },
+            ].map((o) => html`<option value=${o.val} ?selected=${this.chartWindow === o.val}>${o.label}</option>`)}
+          </select>
+        </div>
         <div class="charts-section">
           <mesh-horizon-chart
             .data=${ts.channelUtil}
@@ -232,6 +268,7 @@ export class MeshRadioTab extends LitElement {
             colorScheme="Blues"
             .maxValue=${100}
             unit="%"
+            .bucketInterval=${this.chartInterval}
           ></mesh-horizon-chart>
           <mesh-horizon-chart
             .data=${ts.airtimeTx}
@@ -239,6 +276,7 @@ export class MeshRadioTab extends LitElement {
             colorScheme="Oranges"
             .maxValue=${100}
             unit="%"
+            .bucketInterval=${this.chartInterval}
           ></mesh-horizon-chart>
           <mesh-horizon-chart
             .data=${ts.battery}
@@ -246,18 +284,21 @@ export class MeshRadioTab extends LitElement {
             colorScheme="Greens"
             .maxValue=${100}
             unit="%"
+            .bucketInterval=${this.chartInterval}
           ></mesh-horizon-chart>
           <mesh-horizon-chart
             .data=${ts.packetTx}
             label="Packets TX"
             colorScheme="Purples"
-            unit="pkts/2s"
+            unit="${pktUnit}"
+            .bucketInterval=${this.chartInterval}
           ></mesh-horizon-chart>
           <mesh-horizon-chart
             .data=${ts.packetRx}
             label="Packets RX"
             colorScheme="Reds"
-            unit="pkts/2s"
+            unit="${pktUnit}"
+            .bucketInterval=${this.chartInterval}
           ></mesh-horizon-chart>
         </div>
       ` : ""}
@@ -1782,6 +1823,7 @@ class MeshHorizonChart extends LitElement {
       height: { type: Number },
       maxValue: { type: Number },
       unit: { type: String },
+      bucketInterval: { type: Number },
       _d3Ready: { type: Boolean },
       _tooltip: { type: Object },
     };
@@ -1796,6 +1838,7 @@ class MeshHorizonChart extends LitElement {
     this.height = 64;
     this.maxValue = 0;
     this.unit = "";
+    this.bucketInterval = 2;
     this._d3Ready = false;
     this._resizeObserver = null;
     this._canvasWidth = 0;
@@ -1849,7 +1892,7 @@ class MeshHorizonChart extends LitElement {
     const idx = Math.floor(x / colW);
     if (idx < 0 || idx >= len) { this._tooltip = null; return; }
     const value = this.data[idx];
-    const secsAgo = (len - 1 - idx) * 2;
+    const secsAgo = (len - 1 - idx) * this.bucketInterval;
     const timeLabel = secsAgo === 0 ? "now" : `-${secsAgo}s ago`;
     this._tooltip = { x, value: Math.round(value * 100) / 100, timeLabel };
   }
@@ -1904,7 +1947,7 @@ class MeshHorizonChart extends LitElement {
     ctx.fillStyle = "var(--secondary-text-color, #999)";
     ctx.font = "9px sans-serif";
     ctx.textAlign = "center";
-    const bucketSec = 2;
+    const bucketSec = this.bucketInterval;
     const totalSec = len * bucketSec;
     for (let s = 60; s < totalSec; s += 60) {
       const idx = len - s / bucketSec;
