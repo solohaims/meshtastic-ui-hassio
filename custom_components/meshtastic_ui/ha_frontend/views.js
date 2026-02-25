@@ -1291,19 +1291,27 @@ export class MeshMapTab extends LitElement {
           cursor: pointer; color: var(--secondary-text-color);
         }
         .traceroute-body { padding: 16px 20px; }
-        .route-hop {
-          display: flex; align-items: center; gap: 12px;
-          padding: 8px 0; border-bottom: 1px solid var(--divider-color);
+        .route-summary {
+          font-size: 13px; color: var(--secondary-text-color);
+          margin-bottom: 12px; padding-bottom: 12px;
+          border-bottom: 1px solid var(--divider-color);
         }
-        .route-hop:last-child { border-bottom: none; }
-        .hop-number {
-          width: 24px; height: 24px; border-radius: 50%;
-          background: var(--primary-color); color: var(--text-primary-color);
-          font-size: 11px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        .route-hop { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+        .hop-badge {
+          padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;
+          white-space: nowrap; flex-shrink: 0;
         }
+        .hop-badge.source { background: #4caf50; color: white; }
+        .hop-badge.dest { background: var(--primary-color); color: var(--text-primary-color); }
+        .hop-badge.hop { background: var(--divider-color); color: var(--primary-text-color); }
         .hop-name { flex: 1; font-size: 14px; font-weight: 500; }
-        .hop-snr { font-size: 12px; color: var(--secondary-text-color); }
+        .route-link {
+          display: flex; align-items: center; gap: 10px; padding: 2px 0 2px 8px;
+        }
+        .link-arrow { color: var(--secondary-text-color); font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+        .link-snr-values { display: flex; gap: 12px; font-size: 12px; }
+        .snr-fwd { color: #4caf50; }
+        .snr-ret { color: #2196f3; }
       `,
     ];
   }
@@ -1395,7 +1403,10 @@ export class MeshMapTab extends LitElement {
     const data = this._tracerouteDialogData;
     // data.to = source (local), data.route = forward hops, data.from = destination
     const hops = [data.to, ...(data.route || []), data.from];
-    const snrs = data.snr_towards || [];
+    const snrFwd = data.snr_towards || [];
+    const snrRet = data.snr_back || [];
+    const nLinks = hops.length - 1;
+    const hasReturnRoute = data.route_back?.length > 0;
 
     return html`
       <div class="traceroute-dialog" @click=${(e) => { if (e.target.classList.contains("traceroute-dialog")) this._tracerouteDialogData = null; this.requestUpdate(); }}>
@@ -1405,22 +1416,50 @@ export class MeshMapTab extends LitElement {
             <button class="close" @click=${() => { this._tracerouteDialogData = null; this.requestUpdate(); }}>\u00D7</button>
           </div>
           <div class="traceroute-body">
-            ${hops.map((hopId, i) => html`
-              <div class="route-hop">
-                <div class="hop-number">${i}</div>
-                <div class="hop-name">${this._getNodeName(hopId)}</div>
-                ${i > 0 && snrs[i - 1] != null ? html`<div class="hop-snr">${snrs[i - 1]} dB</div>` : ""}
-              </div>
-            `)}
-            ${data.route_back?.length ? html`
-              <div style="margin-top:12px;font-size:12px;font-weight:600;color:var(--secondary-text-color);text-transform:uppercase;">Return Route</div>
-              ${[data.from, ...(data.route_back || []), data.to].map((hopId, i) => html`
+            <div class="route-summary">${nLinks === 1 ? "Direct connection" : `${nLinks - 1} intermediate hop${nLinks > 2 ? "s" : ""}`}</div>
+            ${hops.map((hopId, i) => {
+              const label = i === 0 ? "Source" : i === hops.length - 1 ? "Destination" : `Hop ${i}`;
+              const badgeClass = i === 0 ? "source" : i === hops.length - 1 ? "dest" : "hop";
+              const fwd = i > 0 ? snrFwd[i - 1] : null;
+              const ret = (i > 0 && !hasReturnRoute) ? snrRet[nLinks - i] : null;
+              return html`
+                ${i > 0 ? html`
+                  <div class="route-link">
+                    <div class="link-arrow">\u2193</div>
+                    <div class="link-snr-values">
+                      ${fwd != null ? html`<span class="snr-fwd">\u2192 TX ${fwd} dB</span>` : ""}
+                      ${ret != null ? html`<span class="snr-ret">\u2190 RX ${ret} dB</span>` : ""}
+                    </div>
+                  </div>
+                ` : ""}
                 <div class="route-hop">
-                  <div class="hop-number">${i}</div>
+                  <div class="hop-badge ${badgeClass}">${label}</div>
                   <div class="hop-name">${this._getNodeName(hopId)}</div>
-                  ${i > 0 && data.snr_back?.[i - 1] != null ? html`<div class="hop-snr">${data.snr_back[i - 1]} dB</div>` : ""}
                 </div>
-              `)}
+              `;
+            })}
+            ${hasReturnRoute ? html`
+              <div style="margin-top:16px;font-size:12px;font-weight:600;color:var(--secondary-text-color);text-transform:uppercase;">Return Route (different path)</div>
+              ${[data.from, ...(data.route_back || []), data.to].map((hopId, i) => {
+                const rhops = [data.from, ...(data.route_back || []), data.to];
+                const label = i === 0 ? "Source" : i === rhops.length - 1 ? "Destination" : `Hop ${i}`;
+                const badgeClass = i === 0 ? "source" : i === rhops.length - 1 ? "dest" : "hop";
+                const snr = i > 0 ? snrRet[i - 1] : null;
+                return html`
+                  ${i > 0 ? html`
+                    <div class="route-link">
+                      <div class="link-arrow">\u2193</div>
+                      <div class="link-snr-values">
+                        ${snr != null ? html`<span class="snr-ret">${snr} dB</span>` : ""}
+                      </div>
+                    </div>
+                  ` : ""}
+                  <div class="route-hop">
+                    <div class="hop-badge ${badgeClass}">${label}</div>
+                    <div class="hop-name">${this._getNodeName(hopId)}</div>
+                  </div>
+                `;
+              })}
             ` : ""}
           </div>
         </div>
