@@ -161,7 +161,14 @@ class MeshtasticUiPanel extends LitElement {
     ts.packetTx[149] = acc.packetTx;
     ts.packetRx[149] = acc.packetRx;
     this._tsAccumulators = { packetRx: 0, packetTx: 0 };
-    this._timeSeries = { ...ts };
+    // Create new typed-array copies so Lit detects reference changes in child charts
+    this._timeSeries = {
+      channelUtil: new Float64Array(ts.channelUtil),
+      airtimeTx: new Float64Array(ts.airtimeTx),
+      battery: new Float64Array(ts.battery),
+      packetTx: new Float64Array(ts.packetTx),
+      packetRx: new Float64Array(ts.packetRx),
+    };
   }
 
   _subscribe() {
