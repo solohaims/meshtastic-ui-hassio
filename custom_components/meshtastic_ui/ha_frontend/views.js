@@ -446,7 +446,7 @@ export class MeshMessagesTab extends LitElement {
         }
         .chat-area {
           flex: 1; display: flex;
-          flex-direction: column; min-width: 0;
+          flex-direction: column; min-width: 0; min-height: 0;
         }
         .chat-messages { flex: 1; overflow-y: auto; padding: 8px 0; }
         .chat-bubble {
@@ -468,6 +468,7 @@ export class MeshMessagesTab extends LitElement {
         .chat-input-row {
           display: flex; gap: 8px; padding-top: 12px;
           border-top: 1px solid var(--divider-color);
+          margin-top: auto; flex-shrink: 0;
         }
         .chat-input-row input {
           flex: 1; padding: 10px 14px;
@@ -491,6 +492,7 @@ export class MeshMessagesTab extends LitElement {
         .chat-input-meta {
           display: flex; justify-content: space-between; align-items: center;
           padding: 4px 4px 0; font-size: 11px; color: var(--secondary-text-color);
+          flex-shrink: 0;
         }
         .byte-counter { font-variant-numeric: tabular-nums; }
         .byte-counter.warn { color: #f9a825; }
