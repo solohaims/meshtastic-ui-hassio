@@ -50,9 +50,9 @@ const REGIONS = [
 ];
 
 const CHANNEL_ROLES = [
-  { value: 0, label: "Disabled" },
-  { value: 1, label: "Primary" },
-  { value: 2, label: "Secondary" },
+  { value: "DISABLED", label: "Disabled" },
+  { value: "PRIMARY", label: "Primary" },
+  { value: "SECONDARY", label: "Secondary" },
 ];
 
 /* ── Device role enum ── */
@@ -605,7 +605,7 @@ class MeshSettingsChannels extends LitElement {
     this._drafts = {};
     channels.forEach((ch, i) => {
       this._drafts[i] = {
-        role: ch.role ?? 0,
+        role: ch.role || "DISABLED",
         name: ch.settings?.name || "",
         psk: ch.settings?.psk ? btoa(String.fromCharCode(...new Uint8Array(
           typeof ch.settings.psk === "string" ? Uint8Array.from(atob(ch.settings.psk), c => c.charCodeAt(0)) : []
@@ -639,7 +639,7 @@ class MeshSettingsChannels extends LitElement {
 
     const draft = this._drafts[index];
     const settings = {
-      role: parseInt(draft.role),
+      role: draft.role,
       name: draft.name,
       uplink_enabled: draft.uplink_enabled,
       downlink_enabled: draft.downlink_enabled,
@@ -679,10 +679,10 @@ class MeshSettingsChannels extends LitElement {
   }
 
   _renderChannel(index) {
-    const draft = this._drafts[index] || { role: 0, name: "", psk: "", uplink_enabled: false, downlink_enabled: false };
+    const draft = this._drafts[index] || { role: "DISABLED", name: "", psk: "", uplink_enabled: false, downlink_enabled: false };
     const isExpanded = this._expandedIndex === index;
     const isDirty = this._dirtyIndexes.has(index);
-    const roleName = CHANNEL_ROLES.find((r) => r.value === parseInt(draft.role))?.label || "Disabled";
+    const roleName = CHANNEL_ROLES.find((r) => r.value === draft.role)?.label || "Disabled";
 
     return html`
       <div class="channel-card">
@@ -692,7 +692,7 @@ class MeshSettingsChannels extends LitElement {
             Channel ${index}${draft.name ? ` — ${draft.name}` : ""}
             ${isDirty ? html` <span style="color: var(--primary-color);">*</span>` : ""}
           </span>
-          <span class="badge ${parseInt(draft.role) === 1 ? "primary" : parseInt(draft.role) === 2 ? "secondary" : ""}">${roleName}</span>
+          <span class="badge ${draft.role === "PRIMARY" ? "primary" : draft.role === "SECONDARY" ? "secondary" : ""}">${roleName}</span>
         </div>
         ${isExpanded ? html`
           <div class="channel-card-body">
@@ -700,8 +700,8 @@ class MeshSettingsChannels extends LitElement {
               <mesh-select
                 label="Role"
                 .value=${String(draft.role)}
-                .options=${CHANNEL_ROLES.map((r) => ({ value: String(r.value), label: r.label }))}
-                @change=${(e) => this._updateChannelField(index, "role", parseInt(e.detail.value))}
+                .options=${CHANNEL_ROLES}
+                @change=${(e) => this._updateChannelField(index, "role", e.detail.value)}
               ></mesh-select>
 
               <mesh-text-input

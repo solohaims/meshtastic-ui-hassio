@@ -384,9 +384,10 @@ class MeshtasticConnection:
             ch = channels[index]
             ch_settings = ch.settings
 
+            role_map = {"DISABLED": 0, "PRIMARY": 1, "SECONDARY": 2}
             for key, value in settings.items():
                 if key == "role":
-                    ch.role = value
+                    ch.role = role_map.get(value, value) if isinstance(value, str) else value
                 elif key == "psk":
                     if isinstance(value, str):
                         import base64
