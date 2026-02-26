@@ -1277,6 +1277,7 @@ export class MeshMapTab extends LitElement {
       traceroutes: { type: Object },
       localNodeId: { type: String },
       _waypointDialog: { type: Object },
+      _addingWaypoint: { type: Boolean },
     };
   }
 
@@ -1343,7 +1344,7 @@ export class MeshMapTab extends LitElement {
         @media (max-width: 768px) {
           .map-controls {
             top: auto; bottom: 10px; left: 10px;
-            max-width: calc(100% - 20px);
+            max-width: calc(100% - 70px);
           }
           .map-info-badge {
             font-size: 11px; padding: 4px 8px;
@@ -1441,6 +1442,34 @@ export class MeshMapTab extends LitElement {
           display: flex; align-items: center; gap: 4px;
         }
         .locate-btn:hover { opacity: 0.85; }
+
+        .wp-fab {
+          position: absolute;
+          bottom: 20px;
+          right: 20px;
+          z-index: 1000;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          border: none;
+          background: var(--primary-color);
+          color: var(--text-primary-color);
+          font-size: 24px;
+          font-weight: bold;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        .wp-fab:hover { transform: scale(1.1); }
+        .wp-fab.active {
+          background: var(--error-color, #f44336);
+        }
+        .map-container.adding-wp .map-element {
+          cursor: crosshair;
+        }
       `,
     ];
   }
@@ -1450,11 +1479,21 @@ export class MeshMapTab extends LitElement {
     if (!this._leafletLoaded && !this._leafletError) {
       this._loadLeaflet();
     }
+    this._onKeyDown = (e) => {
+      if (e.key === "Escape" && this._addingWaypoint) {
+        this._addingWaypoint = false;
+      }
+    };
+    window.addEventListener("keydown", this._onKeyDown);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._destroyMap();
+    if (this._onKeyDown) {
+      window.removeEventListener("keydown", this._onKeyDown);
+      this._onKeyDown = null;
+    }
   }
 
   updated(changedProps) {
@@ -1508,7 +1547,7 @@ export class MeshMapTab extends LitElement {
     const routeCount = Object.keys(this.traceroutes || {}).length;
 
     return html`
-      <div class="map-container">
+      <div class="map-container ${this._addingWaypoint ? "adding-wp" : ""}">
         <div id="mesh-map" class="map-element"></div>
         <div class="map-controls">
           <button class="layer-btn ${this._showNodes ? "active" : ""}"
@@ -1526,6 +1565,11 @@ export class MeshMapTab extends LitElement {
         ${nodesWithout > 0 ? html`
           <div class="map-info-badge">${nodesWithout} node${nodesWithout !== 1 ? "s" : ""} without position</div>
         ` : ""}
+        <button class="wp-fab ${this._addingWaypoint ? "active" : ""}"
+          @click=${this._toggleAddWaypoint}
+          title="${this._addingWaypoint ? "Cancel" : "Add waypoint"}">
+          ${this._addingWaypoint ? "\u00D7" : "+"}
+        </button>
       </div>
       ${this._tracerouteDialogData ? this._renderTracerouteDialog() : ""}
       ${this._waypointDialog ? this._renderWaypointDialog() : ""}
@@ -1657,6 +1701,10 @@ export class MeshMapTab extends LitElement {
     this._mapInstance.locate({ setView: true, maxZoom: 16 });
   }
 
+  _toggleAddWaypoint() {
+    this._addingWaypoint = !this._addingWaypoint;
+  }
+
   _getNodeName(nodeId) {
     if (!nodeId) return "Unknown";
     const node = this.nodes?.[nodeId];
@@ -1749,6 +1797,8 @@ export class MeshMapTab extends LitElement {
     this._tracerouteLayer = L.layerGroup();
 
     map.on("click", (e) => {
+      if (!this._addingWaypoint) return;
+      this._addingWaypoint = false;
       this._waypointDialog = { lat: e.latlng.lat, lon: e.latlng.lng };
       this.requestUpdate();
     });
