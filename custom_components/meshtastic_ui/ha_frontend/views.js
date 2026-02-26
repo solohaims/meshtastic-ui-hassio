@@ -406,6 +406,7 @@ export class MeshMessagesTab extends LitElement {
       messages: { type: Object },
       channels: { type: Array },
       dms: { type: Array },
+      channelNames: { type: Object },
       selectedConversation: { type: String },
       deliveryStatuses: { type: Object },
       nodes: { type: Object },
@@ -420,6 +421,7 @@ export class MeshMessagesTab extends LitElement {
     this.messages = {};
     this.channels = [];
     this.dms = [];
+    this.channelNames = {};
     this.selectedConversation = "";
     this.deliveryStatuses = {};
     this.nodes = {};
@@ -705,7 +707,7 @@ export class MeshMessagesTab extends LitElement {
               <div
                 class="conversation-item ${selected === ch ? "active" : ""}"
                 @click=${() => this._selectConversation(ch)}
-              >${ch === "0" ? "Primary" : ch}${badge > 0 ? html`<span class="conv-badge">${badge}</span>` : ""}</div>
+              >${this.channelNames?.[ch] || (ch === "0" ? "Primary" : `Channel ${ch}`)}${badge > 0 ? html`<span class="conv-badge">${badge}</span>` : ""}</div>
             `;
           })}
           ${this.dms.length ? html`

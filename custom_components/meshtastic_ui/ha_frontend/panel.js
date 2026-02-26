@@ -45,6 +45,7 @@ class MeshtasticUiPanel extends LitElement {
       _pendingPosition: { type: String },
       _tracerouteDialog: { type: Object },
       _unreadCounts: { type: Object },
+      _channelNames: { type: Object },
       _notificationPrefs: { type: Object },
       _showNotificationModal: { type: Boolean },
       _nodeDialogId: { type: String },
@@ -71,6 +72,7 @@ class MeshtasticUiPanel extends LitElement {
     this._pendingPosition = null;
     this._tracerouteDialog = null;
     this._tracerouteTimeoutId = null;
+    this._channelNames = {};
     this._unreadCounts = JSON.parse(localStorage.getItem("meshtastic_unread") || "{}");
     this._notificationPrefs = { enabled: false, service: "notify.notify", filter: "all" };
     this._showNotificationModal = false;
@@ -162,6 +164,20 @@ class MeshtasticUiPanel extends LitElement {
         const gw = this._gateways[0];
         if (gw.node_id) this._localNodeId = gw.node_id;
       }
+      // Build channel name map and seed channel list from gateway data.
+      const channelNames = {};
+      const gwChannels = [];
+      for (const gw of this._gateways) {
+        for (const ch of gw.channels || []) {
+          const key = String(ch.index);
+          channelNames[key] = ch.name;
+          if (!gwChannels.includes(key)) gwChannels.push(key);
+        }
+      }
+      this._channelNames = channelNames;
+      const merged = [...new Set([...gwChannels, ...this._channels])];
+      merged.sort((a, b) => Number(a) - Number(b));
+      this._channels = merged;
     }
   }
 
@@ -169,7 +185,11 @@ class MeshtasticUiPanel extends LitElement {
     const result = await this._wsCommand("meshtastic_ui/messages");
     if (result) {
       this._messages = result.messages || {};
-      this._channels = result.channels || [];
+      // Merge message channels with gateway-derived channels.
+      const msgChannels = result.channels || [];
+      const all = [...new Set([...Object.keys(this._channelNames || {}), ...msgChannels])];
+      all.sort((a, b) => Number(a) - Number(b));
+      this._channels = all;
       this._dms = result.dms || [];
     }
   }
@@ -800,6 +820,7 @@ class MeshtasticUiPanel extends LitElement {
             .messages=${this._messages}
             .channels=${this._channels}
             .dms=${this._dms}
+            .channelNames=${this._channelNames}
             .selectedConversation=${this._selectedConversation}
             .deliveryStatuses=${this._deliveryStatuses}
             .nodes=${this._nodes}
