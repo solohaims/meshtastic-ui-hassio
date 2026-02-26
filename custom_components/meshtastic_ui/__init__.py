@@ -37,14 +37,14 @@ from .frontend import async_register_panel, async_unregister_panel
 from .store import MeshtasticUiStore, TimeSeriesStore, normalize_node_id
 from .websocket_api import async_register_websocket_api
 
-_TS_SERIES_KEYS = ("channelUtil", "airtimeTx", "battery", "packetTx", "packetRx")
-_PACKET_TYPE_KEYS = ("text", "position", "telemetry", "nodeinfo", "routing", "other")
+_TS_SERIES_KEYS = ("airtimeTx", "battery", "channelUtil", "packetRx", "packetTx")
+_PACKET_TYPE_KEYS = ("nodeinfo", "other", "position", "routing", "telemetry", "text")
 _PORTNUM_MAP = {
-    "TEXT_MESSAGE_APP": "text",
-    "POSITION_APP": "position",
-    "TELEMETRY_APP": "telemetry",
     "NODEINFO_APP": "nodeinfo",
+    "POSITION_APP": "position",
     "ROUTING_APP": "routing",
+    "TELEMETRY_APP": "telemetry",
+    "TEXT_MESSAGE_APP": "text",
 }
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     ts_store = TimeSeriesStore(hass)
 
-    # Create the radio connection
+    # Create the radio connection.
     connection = _create_connection(hass, entry.data)
 
     hass.data[DOMAIN] = {
@@ -75,7 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "ts_store": ts_store,
         "connection": connection,
         "unsub_callbacks": [],
-        "pending_acks": {},  # packet_id -> message info for delivery tracking
+        "pending_acks": {},  # packet_id -> message info for delivery tracking.
         "ts": {
             "data": {k: deque(maxlen=TS_MAX_POINTS) for k in _TS_SERIES_KEYS},
             "packetTypes": {k: deque(maxlen=TS_MAX_POINTS) for k in _PACKET_TYPE_KEYS},
@@ -86,7 +86,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         },
     }
 
-    # Restore persisted time-series data
+    # Restore persisted time-series data.
     saved_ts = await ts_store.async_load()
     if saved_ts:
         ts = hass.data[DOMAIN]["ts"]
@@ -99,19 +99,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 vals = saved_ts["packetTypes"][key]
                 ts["packetTypes"][key] = deque(vals, maxlen=TS_MAX_POINTS)
 
-    # Register radio callbacks
+    # Register radio callbacks.
     _register_radio_callbacks(hass, store, connection)
 
-    # Connect to the radio
+    # Connect to the radio.
     try:
         await connection.async_connect()
     except Exception:  # noqa: BLE001
         _LOGGER.error("Initial connection to Meshtastic radio failed; will retry")
 
-    # Sync nodes from radio's mesh database and seed time-series snapshots
+    # Sync nodes from radio's mesh database and seed time-series snapshots.
     _sync_nodes_from_radio(hass, store, connection)
 
-    # Start time-series flush timer (runs regardless of frontend connections)
+    # Start time-series flush timer (runs regardless of frontend connections).
     @callback
     def _flush_timeseries(_now: Any) -> None:
         ts = hass.data.get(DOMAIN, {}).get("ts")
@@ -126,13 +126,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data["packetTx"].append(acc["packetTx"])
         data["packetRx"].append(acc["packetRx"])
         ts["accumulators"] = {"packetTx": 0, "packetRx": 0}
-        # Per-type packet breakdown
+        # Per-type packet breakdown.
         pt = ts["packetTypes"]
         pta = ts["packetTypeAccum"]
         for k in _PACKET_TYPE_KEYS:
             pt[k].append(pta[k])
         ts["packetTypeAccum"] = {k: 0 for k in _PACKET_TYPE_KEYS}
-        # Prune stale pending_acks (older than 5 minutes)
+        # Prune stale pending_acks (older than 5 minutes).
         now = time.time()
         pending = hass.data[DOMAIN].get("pending_acks", {})
         stale = [k for k, v in pending.items() if now - v.get("_ts", 0) > 300]
@@ -144,7 +144,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     hass.data[DOMAIN]["unsub_callbacks"].append(unsub_ts)
 
-    # Persist time-series to disk every 5 minutes
+    # Persist time-series to disk every 5 minutes.
     async def _persist_timeseries(_now: Any) -> None:
         ts = hass.data.get(DOMAIN, {}).get("ts")
         ts_s = hass.data.get(DOMAIN, {}).get("ts_store")
@@ -156,13 +156,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     hass.data[DOMAIN]["unsub_callbacks"].append(unsub_ts_persist)
 
-    # Register WebSocket API
+    # Register WebSocket API.
     async_register_websocket_api(hass)
 
-    # Register frontend panel
+    # Register frontend panel.
     await async_register_panel(hass)
 
-    # Set up sensor platform
+    # Set up sensor platform.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
@@ -176,7 +176,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data = hass.data.pop(DOMAIN, {})
         for unsub in data.get("unsub_callbacks", []):
             unsub()
-        # Persist time-series before shutdown
+        # Persist time-series before shutdown.
         ts_s: TimeSeriesStore | None = data.get("ts_store")
         ts = data.get("ts")
         if ts_s and ts:
@@ -238,7 +238,7 @@ def _register_radio_callbacks(
             portnum, packet.get("fromId"), packet.get("toId"),
         )
 
-        # Count all received packets from other nodes for time-series
+        # Count all received packets from other nodes for time-series.
         ts = hass.data.get(DOMAIN, {}).get("ts")
         if ts and portnum:
             sender_id = packet.get("fromId")
@@ -253,19 +253,19 @@ def _register_radio_callbacks(
             _LOGGER.debug("Text message: %r", decoded.get("text", "")[:50])
             _handle_text_message(hass, store, packet)
 
-        # Handle delivery acknowledgements
+        # Handle delivery acknowledgements.
         if portnum == "ROUTING_APP":
             _handle_delivery_ack(hass, packet)
 
-        # Handle traceroute responses
+        # Handle traceroute responses.
         if portnum == "TRACEROUTE_APP":
             _handle_traceroute(hass, store, packet)
 
-        # Handle waypoints
+        # Handle waypoints.
         if portnum == "WAYPOINT_APP":
             _handle_waypoint(hass, store, packet)
 
-        # Capture LocalStats from our own telemetry
+        # Capture LocalStats from our own telemetry.
         if portnum == "TELEMETRY_APP":
             telemetry = decoded.get("telemetry", {})
             local_stats = telemetry.get("localStats")
@@ -275,7 +275,7 @@ def _register_radio_callbacks(
                 if local_num and sender_num == local_num:
                     hass.data[DOMAIN]["local_stats"] = local_stats
 
-        # Track sender as a node
+        # Track sender as a node.
         sender_id = packet.get("fromId")
         if sender_id:
             sender_id = normalize_node_id(sender_id)
@@ -305,7 +305,7 @@ def _register_radio_callbacks(
         store.update_node(node_id, data)
         async_dispatcher_send(hass, SIGNAL_NODE_UPDATE, node_id)
 
-        # Capture telemetry snapshots from the local (gateway) node
+        # Capture telemetry snapshots from the local (gateway) node.
         ts = hass.data.get(DOMAIN, {}).get("ts")
         if ts and node_num == ts.get("local_node_num"):
             metrics = node.get("deviceMetrics", {})
@@ -321,7 +321,7 @@ def _register_radio_callbacks(
         new_state: ConnectionState, old_state: ConnectionState
     ) -> None:
         """Handle connection state changes."""
-        _LOGGER.info(
+        _LOGGER.debug(
             "Meshtastic connection: %s -> %s", old_state, new_state
         )
         async_dispatcher_send(hass, SIGNAL_CONNECTION_STATE, new_state)
@@ -330,7 +330,7 @@ def _register_radio_callbacks(
             ConnectionState.RECONNECTING,
             ConnectionState.CONNECTING,
         ):
-            # Re-sync nodes on reconnect
+            # Re-sync nodes on reconnect.
             _sync_nodes_from_radio(hass, store, connection)
 
     unsub_callbacks.append(connection.register_message_callback(_on_packet))
@@ -352,7 +352,7 @@ def _handle_text_message(
 
     sender_id = normalize_node_id(packet.get("fromId", "unknown"))
 
-    # Skip our own outgoing messages — already handled by ws_send_message
+    # Skip our own outgoing messages — already handled by ws_send_message.
     ts = hass.data.get(DOMAIN, {}).get("ts")
     if ts:
         local_num = ts.get("local_node_num")
@@ -371,7 +371,7 @@ def _handle_text_message(
         "channel": channel_key,
     }
 
-    # Broadcast destinations: ^all or !ffffffff
+    # Broadcast destinations: ^all or !ffffffff.
     is_broadcast = to_id in ("^all", "!ffffffff", "")
 
     if is_broadcast:
@@ -382,7 +382,7 @@ def _handle_text_message(
             {"type": "channel", "channel": channel_key, **message},
         )
     else:
-        # DM — key by the other party's ID
+        # DM — key by the other party's ID.
         store.add_dm_message(sender_id, message)
         async_dispatcher_send(
             hass,
@@ -390,7 +390,7 @@ def _handle_text_message(
             {"type": "dm", "partner": sender_id, **message},
         )
 
-    # Send push notification if enabled
+    # Send push notification if enabled.
     prefs = store.get_notification_prefs()
     if prefs.get("enabled"):
         msg_filter = prefs.get("filter", "all")
@@ -451,7 +451,7 @@ def _handle_delivery_ack(hass: HomeAssistant, packet: dict) -> None:
     else:
         status = "delivered"
 
-    # Count outgoing packets for time-series
+    # Count outgoing packets for time-series.
     ts = hass.data.get(DOMAIN, {}).get("ts")
     if ts:
         ts["accumulators"]["packetTx"] += 1
@@ -484,19 +484,19 @@ def _handle_traceroute(
         return
 
     if not traceroute:
-        # Some library versions may not nest under "traceroute"; still record the route
+        # Some library versions may not nest under "traceroute"; still record the route.
         _LOGGER.debug(
             "Traceroute packet has no decoded route data (keys: %s), recording direct route %s -> %s",
             list(decoded.keys()), to_id, from_id,
         )
 
-    # Extract route hops (list of node IDs)
+    # Extract route hops (list of node IDs).
     route = traceroute.get("route", [])
     route_back = traceroute.get("routeBack", [])
     snr_towards = traceroute.get("snrTowards", [])
     snr_back = traceroute.get("snrBack", [])
 
-    # Convert numeric node IDs to hex format
+    # Convert numeric node IDs to hex format.
     route_ids = [_num_to_id(n) if isinstance(n, int) else normalize_node_id(str(n)) for n in route]
     route_back_ids = [
         _num_to_id(n) if isinstance(n, int) else normalize_node_id(str(n)) for n in route_back
@@ -511,7 +511,7 @@ def _handle_traceroute(
         "snr_back": list(snr_back),
     }
 
-    # Store keyed by the responding node (destination of the traceroute)
+    # Store keyed by the responding node (destination of the traceroute).
     store.set_traceroute(from_id, result)
 
     _LOGGER.debug("Traceroute stored: %s -> %s via %d hops", to_id, from_id, len(route_ids))
@@ -538,7 +538,7 @@ def _handle_waypoint(
     name = waypoint.get("name", "")
     description = waypoint.get("description", "")
 
-    # Check if this is a deletion (expire=1 means already expired)
+    # Check if this is a deletion (expire=1 means already expired).
     now_ts = int(datetime.now(timezone.utc).timestamp())
     if expire > 0 and expire <= now_ts:
         store.remove_waypoint(wp_id)
@@ -585,9 +585,9 @@ def _sync_nodes_from_radio(
 
     if updates:
         store.bulk_update_nodes(updates)
-        _LOGGER.info("Synced %d nodes from radio mesh database", len(updates))
+        _LOGGER.debug("Synced %d nodes from radio mesh database", len(updates))
 
-    # Seed time-series state from the local (gateway) node
+    # Seed time-series state from the local (gateway) node.
     my_info = connection.my_info
     ts = hass.data.get(DOMAIN, {}).get("ts")
     if my_info and ts:
@@ -609,7 +609,7 @@ def _extract_node_data(node: dict) -> dict[str, Any]:
         "_last_seen": datetime.now(timezone.utc).isoformat(),
     }
 
-    # User info
+    # User info.
     user = node.get("user", {})
     if user.get("longName"):
         data["name"] = user["longName"]
@@ -618,7 +618,7 @@ def _extract_node_data(node: dict) -> dict[str, Any]:
     if user.get("hwModel"):
         data["hardware_model"] = user["hwModel"]
 
-    # Position
+    # Position.
     position = node.get("position", {})
     if position.get("latitude") is not None:
         data["latitude"] = position["latitude"]
@@ -627,7 +627,7 @@ def _extract_node_data(node: dict) -> dict[str, Any]:
     if position.get("altitude") is not None:
         data["altitude"] = position["altitude"]
 
-    # Device metrics
+    # Device metrics.
     metrics = node.get("deviceMetrics", {})
     if metrics.get("batteryLevel") is not None:
         data["battery"] = metrics["batteryLevel"]
@@ -640,7 +640,7 @@ def _extract_node_data(node: dict) -> dict[str, Any]:
     if metrics.get("uptimeSeconds") is not None:
         data["uptime"] = metrics["uptimeSeconds"]
 
-    # SNR / hops
+    # SNR / hops.
     if node.get("snr") is not None:
         data["snr"] = node["snr"]
     if node.get("hopsAway") is not None:

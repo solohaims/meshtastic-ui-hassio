@@ -32,7 +32,7 @@ def _apply_protobuf_values(
     for key, value in values.items():
         if key not in field_map:
             if hasattr(proto_obj, key):
-                # Field exists on the object but not in descriptor (oneof, etc.)
+                # Field exists on the object but not in descriptor (oneof, etc.).
                 try:
                     setattr(proto_obj, key, value)
                 except (AttributeError, TypeError):
@@ -48,7 +48,7 @@ def _apply_protobuf_values(
         field = field_map[key]
 
         if field.message_type is not None and field.label != FieldDescriptor.LABEL_REPEATED:
-            # Nested sub-message — recurse into it
+            # Nested sub-message — recurse into it.
             if isinstance(value, dict):
                 sub_msg = getattr(proto_obj, key)
                 _apply_protobuf_values(sub_msg, value, f"{context}.{key}")
@@ -58,13 +58,13 @@ def _apply_protobuf_values(
                     key, context or "config", type(value).__name__,
                 )
         elif field.label == FieldDescriptor.LABEL_REPEATED:
-            # Repeated field — clear and extend
+            # Repeated field — clear and extend.
             repeated = getattr(proto_obj, key)
             del repeated[:]
             if isinstance(value, (list, tuple)):
                 repeated.extend(value)
         else:
-            # Scalar field — direct assignment
+            # Scalar field — direct assignment.
             try:
                 setattr(proto_obj, key, value)
             except (AttributeError, TypeError) as err:
@@ -193,7 +193,7 @@ class MeshtasticConnection:
             )
             self._setup_pubsub_listeners()
             self._set_state(ConnectionState.CONNECTED)
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Connected to Meshtastic radio via %s", self._connection_type
             )
         except Exception as err:
@@ -295,7 +295,7 @@ class MeshtasticConnection:
             node = iface.localNode
             result: dict[str, Any] = {}
 
-            # Local config sections
+            # Local config sections.
             if node.localConfig:
                 result["local_config"] = MessageToDict(
                     node.localConfig, preserving_proto_field_name=True
@@ -303,7 +303,7 @@ class MeshtasticConnection:
             else:
                 result["local_config"] = {}
 
-            # Module config sections
+            # Module config sections.
             if node.moduleConfig:
                 result["module_config"] = MessageToDict(
                     node.moduleConfig, preserving_proto_field_name=True
@@ -311,17 +311,17 @@ class MeshtasticConnection:
             else:
                 result["module_config"] = {}
 
-            # Channels
+            # Channels.
             channels = []
             for ch in node.channels or []:
                 channels.append(MessageToDict(ch, preserving_proto_field_name=True))
             result["channels"] = channels
 
-            # Owner info
+            # Owner info.
             my_node = iface.getMyNodeInfo() or {}
             result["owner"] = my_node.get("user", {})
 
-            # Device metadata
+            # Device metadata.
             try:
                 result["metadata"] = dict(iface.metadata or {})
             except Exception:  # noqa: BLE001
@@ -341,16 +341,16 @@ class MeshtasticConnection:
         def _write() -> None:
             node = iface.localNode
 
-            # Determine if this is a local_config or module_config section
+            # Determine if this is a local_config or module_config section.
             local_sections = {
-                "device", "position", "power", "network",
-                "display", "lora", "bluetooth", "security",
+                "bluetooth", "device", "display", "lora",
+                "network", "position", "power", "security",
             }
             module_sections = {
-                "mqtt", "serial", "external_notification", "store_forward",
-                "range_test", "telemetry", "canned_message", "audio",
-                "neighbor_info", "detection_sensor", "ambient_lighting",
-                "paxcounter",
+                "ambient_lighting", "audio", "canned_message",
+                "detection_sensor", "external_notification", "mqtt",
+                "neighbor_info", "paxcounter", "range_test", "serial",
+                "store_forward", "telemetry",
             }
 
             if section in local_sections:
@@ -555,7 +555,7 @@ class MeshtasticConnection:
         """Subscribe to meshtastic pubsub events from the interface."""
         from pubsub import pub
 
-        # Clean up any old subscriptions first (prevents duplicates on reconnect)
+        # Clean up any old subscriptions first (prevents duplicates on reconnect).
         self._teardown_pubsub_listeners()
 
         def _on_receive(packet: dict, interface: Any) -> None:
@@ -591,7 +591,7 @@ class MeshtasticConnection:
                 self._async_dispatch_node_update, node
             )
 
-        # Store (callback, topic) tuples for cleanup on disconnect/reconnect
+        # Store (callback, topic) tuples for cleanup on disconnect/reconnect.
         topics = [
             (_on_receive, "meshtastic.receive"),
             (_on_connection_established, "meshtastic.connection.established"),
@@ -642,7 +642,7 @@ class MeshtasticConnection:
             if self._state != ConnectionState.RECONNECTING:
                 return
 
-            # Clean up old interface
+            # Clean up old interface.
             if self._interface is not None:
                 old = self._interface
                 self._interface = None
@@ -657,7 +657,7 @@ class MeshtasticConnection:
                 )
                 self._setup_pubsub_listeners()
                 self._set_state(ConnectionState.CONNECTED)
-                _LOGGER.info("Reconnected to Meshtastic radio")
+                _LOGGER.debug("Reconnected to Meshtastic radio")
                 return
             except Exception:  # noqa: BLE001
                 _LOGGER.debug(

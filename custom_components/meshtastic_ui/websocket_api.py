@@ -94,7 +94,7 @@ async def ws_gateways(
     meta = conn.metadata
     iface = conn.interface
 
-    # Build gateway info from the radio's own node and metadata
+    # Build gateway info from the radio's own node and metadata.
     name = "Meshtastic Radio"
     model = None
     firmware = None
@@ -102,20 +102,20 @@ async def ws_gateways(
     sensors: dict[str, Any] = {}
     channels: list[dict[str, Any]] = []
 
-    # Extract from our node in the mesh database
+    # Extract from our node in the mesh database.
     user = my_info.get("user", {})
     if user.get("longName"):
         name = user["longName"]
     if user.get("hwModel"):
         model = user["hwModel"]
 
-    # Metadata from the device
+    # Metadata from the device.
     if meta.get("firmwareVersion"):
         firmware = meta["firmwareVersion"]
     if meta.get("hwModel"):
         model = model or meta["hwModel"]
 
-    # Device metrics from our node
+    # Device metrics from our node.
     device_metrics = my_info.get("deviceMetrics", {})
     if device_metrics.get("batteryLevel") is not None:
         sensors["battery"] = device_metrics["batteryLevel"]
@@ -130,7 +130,7 @@ async def ws_gateways(
     if device_metrics.get("uptimeSeconds") is not None:
         sensors["uptime"] = device_metrics["uptimeSeconds"]
 
-    # Packet counters from LocalStats telemetry
+    # Packet counters from LocalStats telemetry.
     local_stats = hass.data.get(DOMAIN, {}).get("local_stats", {})
     if local_stats.get("numPacketsTx") is not None:
         sensors["packets_tx"] = local_stats["numPacketsTx"]
@@ -141,12 +141,12 @@ async def ws_gateways(
     if local_stats.get("numTxRelay") is not None:
         sensors["packets_relayed"] = local_stats["numTxRelay"]
 
-    # Channel list from the interface
+    # Channel list from the interface.
     if iface is not None:
         try:
             node_info = iface.getMyNodeInfo()
             if node_info:
-                # Try to get serial number
+                # Try to get serial number.
                 hw = node_info.get("user", {})
                 if hw.get("macaddr"):
                     serial = hw["macaddr"]
@@ -175,7 +175,7 @@ async def ws_gateways(
 
     state = "connected" if conn.state == "connected" else str(conn.state)
 
-    # Get local node ID in !hex format
+    # Get local node ID in !hex format.
     local_node_id = None
     node_num = my_info.get("num")
     if node_num is not None:
@@ -213,7 +213,7 @@ async def ws_messages(
     entity_id = msg.get("entity_id")
 
     if entity_id:
-        # Check channels first, then DMs
+        # Check channels first, then DMs.
         messages = store.get_channel_messages(entity_id)
         if not messages:
             messages = store.get_dm_messages(entity_id)
@@ -362,7 +362,7 @@ async def ws_send_message(
     channel = msg.get("channel", 0)
     to = msg.get("to")
 
-    # Determine local node ID for the outgoing message
+    # Determine local node ID for the outgoing message.
     local_node_id = None
     my_info = conn.my_info
     node_num = my_info.get("num")
@@ -373,7 +373,7 @@ async def ws_send_message(
         packet_id = await conn.async_send_text(
             text, destination_id=to, channel_index=channel
         )
-        # Register for delivery tracking
+        # Register for delivery tracking.
         if packet_id is not None:
             pending = hass.data.get(DOMAIN, {}).get("pending_acks", {})
             pending[packet_id] = {
@@ -383,7 +383,7 @@ async def ws_send_message(
                 "_ts": time.time(),
             }
 
-        # Store and dispatch the outgoing message so the UI shows it
+        # Store and dispatch the outgoing message so the UI shows it.
         timestamp = datetime.now(timezone.utc).isoformat()
         out_msg: dict[str, Any] = {
             "text": text,
@@ -404,7 +404,7 @@ async def ws_send_message(
                 {"type": "dm", "partner": to, **out_msg},
             )
         else:
-            # Channel broadcast
+            # Channel broadcast.
             channel_key = str(channel)
             out_msg["to"] = "^all"
             out_msg["channel"] = channel_key
@@ -609,10 +609,7 @@ async def ws_set_owner(
 @websocket_command(
     {
         vol.Required("type"): f"{WS_PREFIX}/device_action",
-        vol.Required("action"): vol.In({
-            "reboot", "shutdown", "factory_reset_config",
-            "factory_reset_device", "reboot_ota", "reset_nodedb",
-        }),
+        vol.Required("action"): vol.In({"factory_reset_config", "factory_reset_device", "reboot", "reboot_ota", "reset_nodedb", "shutdown"}),
         vol.Optional("params"): dict,
     }
 )
@@ -639,9 +636,7 @@ async def ws_device_action(
     {
         vol.Required("type"): f"{WS_PREFIX}/node_admin",
         vol.Required("node_id"): str,
-        vol.Required("action"): vol.In({
-            "favorite", "unfavorite", "ignore", "unignore", "remove",
-        }),
+        vol.Required("action"): vol.In({"favorite", "ignore", "remove", "unfavorite", "unignore"}),
     }
 )
 @async_response
@@ -658,7 +653,7 @@ async def ws_node_admin(
     node_id = msg["node_id"]
     try:
         await conn.async_node_admin(node_id, action)
-        # Sync favorites/ignored to the local store
+        # Sync favorites/ignored to the local store.
         if action == "favorite":
             store.set_favorite(node_id, True)
         elif action == "unfavorite":
@@ -870,7 +865,7 @@ async def ws_set_notification_prefs(
 
 # Snapshot metrics are averaged; counter metrics are summed when downsampling.
 _COUNTER_SERIES = {"packetTx", "packetRx"}
-_COUNTER_PACKET_TYPES = {"text", "position", "telemetry", "nodeinfo", "routing", "other"}
+_COUNTER_PACKET_TYPES = {"nodeinfo", "other", "position", "routing", "telemetry", "text"}
 
 
 def _downsample(values: list[float], factor: int, is_counter: bool) -> list[float]:
@@ -918,13 +913,13 @@ def ws_get_timeseries(
     factor = max(1, raw_points // TS_POINTS)
     bucket_interval = factor * TS_FLUSH_SECONDS
 
-    # Slice and downsample main series
+    # Slice and downsample main series.
     result_data: dict[str, list[float]] = {}
     for k, dq in ts["data"].items():
         sliced = list(dq)[-raw_points:]
         result_data[k] = _downsample(sliced, factor, k in _COUNTER_SERIES)
 
-    # Slice and downsample packet-type series
+    # Slice and downsample packet-type series.
     packet_types = ts.get("packetTypes")
     result_pt: dict[str, list[float]] | None = None
     if packet_types:

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 
 from .const import (
     CONF_BLE_ADDRESS,
@@ -30,7 +31,7 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._connection_type: str | None = None
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 1: Choose connection type."""
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured()
@@ -59,7 +60,7 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
         )
 
-    async def async_step_tcp(self, user_input=None):
+    async def async_step_tcp(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 2a: TCP connection details."""
         errors: dict[str, str] = {}
 
@@ -91,7 +92,7 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_serial(self, user_input=None):
+    async def async_step_serial(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 2b: Serial connection details."""
         errors: dict[str, str] = {}
 
@@ -110,7 +111,7 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
                     },
                 )
 
-        # Try to auto-detect serial ports
+        # Try to auto-detect serial ports.
         suggested = await self._async_detect_serial_ports()
 
         return self.async_show_form(
@@ -126,7 +127,7 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_ble(self, user_input=None):
+    async def async_step_ble(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 2c: BLE connection details."""
         errors: dict[str, str] = {}
 

@@ -27,7 +27,7 @@ async def async_register_panel(hass: HomeAssistant) -> None:
         ]
     )
 
-    # Remove stale panel from a previous (possibly failed) setup
+    # Remove stale panel from a previous (possibly failed) setup.
     try:
         async_remove_panel(hass, PANEL_URL)
     except KeyError:

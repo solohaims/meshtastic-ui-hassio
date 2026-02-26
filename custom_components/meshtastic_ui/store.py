@@ -67,17 +67,17 @@ class MeshtasticUiStore:
         if data is None:
             return
 
-        # Restore channel messages
+        # Restore channel messages.
         for entity_id, messages in data.get("channel_messages", {}).items():
             self._channel_messages[entity_id] = deque(
                 messages, maxlen=MAX_CHANNEL_MESSAGES
             )
 
-        # Restore DM messages
+        # Restore DM messages.
         for entity_id, messages in data.get("dm_messages", {}).items():
             self._dm_messages[entity_id] = deque(messages, maxlen=MAX_DM_MESSAGES)
 
-        # Restore nodes, prune stale entries, normalize IDs to !hex
+        # Restore nodes, prune stale entries, normalize IDs to !hex.
         now = datetime.now(timezone.utc)
         for node_id, node_data in data.get("nodes", {}).items():
             last_seen = node_data.get("_last_seen")
@@ -87,7 +87,7 @@ class MeshtasticUiStore:
                     continue
             norm_id = normalize_node_id(node_id)
             if norm_id in self._nodes:
-                # Merge: prefer the entry with more data
+                # Merge: prefer the entry with more data.
                 existing = self._nodes[norm_id]
                 existing.update(
                     {k: v for k, v in node_data.items() if v is not None}
@@ -95,7 +95,7 @@ class MeshtasticUiStore:
             else:
                 self._nodes[norm_id] = node_data
 
-        # Restore daily counter
+        # Restore daily counter.
         today = now.strftime("%Y-%m-%d")
         stored_date = data.get("counter_date", "")
         if stored_date == today:
@@ -104,7 +104,7 @@ class MeshtasticUiStore:
             self._messages_today = 0
         self._counter_date = today
 
-        # Restore favorites and ignored (normalize IDs)
+        # Restore favorites and ignored (normalize IDs).
         self._favorite_nodes = {
             normalize_node_id(n) for n in data.get("favorite_nodes", [])
         }
@@ -112,7 +112,7 @@ class MeshtasticUiStore:
             normalize_node_id(n) for n in data.get("ignored_nodes", [])
         }
 
-        # Restore waypoints, prune expired
+        # Restore waypoints, prune expired.
         now_ts = int(now.timestamp())
         for wp_id_str, wp_data in data.get("waypoints", {}).items():
             expire = wp_data.get("expire", 0)
@@ -120,10 +120,10 @@ class MeshtasticUiStore:
                 continue
             self._waypoints[int(wp_id_str)] = wp_data
 
-        # Restore traceroutes
+        # Restore traceroutes.
         self._traceroutes = data.get("traceroutes", {})
 
-        # Restore notification preferences
+        # Restore notification preferences.
         saved_prefs = data.get("notification_prefs")
         if saved_prefs:
             self._notification_prefs.update(saved_prefs)
