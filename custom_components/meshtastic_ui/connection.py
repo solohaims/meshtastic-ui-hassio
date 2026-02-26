@@ -235,14 +235,29 @@ class MeshtasticConnection:
         iface = self._interface
 
         def _send() -> int | None:
-            kwargs: dict[str, Any] = {"channelIndex": channel_index}
-            if destination_id:
-                kwargs["destinationId"] = destination_id
-            if reply_id is not None:
-                kwargs["replyId"] = reply_id
             if emoji:
-                kwargs["emoji"] = 1
-            meshPacket = iface.sendText(text, **kwargs)
+                # sendText() doesn't support the emoji field — build the
+                # packet manually and send via sendData().
+                from meshtastic.protobuf import mesh_pb2, portnums_pb2
+
+                meshPacket = mesh_pb2.MeshPacket()
+                meshPacket.decoded.payload = text.encode("utf-8")
+                meshPacket.decoded.emoji = 1
+                if reply_id is not None:
+                    meshPacket.decoded.reply_id = reply_id
+                meshPacket = iface.sendData(
+                    meshPacket,
+                    destination_id or "^all",
+                    portNum=portnums_pb2.TEXT_MESSAGE_APP,
+                    channelIndex=channel_index,
+                )
+            else:
+                kwargs: dict[str, Any] = {"channelIndex": channel_index}
+                if destination_id:
+                    kwargs["destinationId"] = destination_id
+                if reply_id is not None:
+                    kwargs["replyId"] = reply_id
+                meshPacket = iface.sendText(text, **kwargs)
             if meshPacket and hasattr(meshPacket, "id"):
                 return meshPacket.id
             return None
