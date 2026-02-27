@@ -439,7 +439,7 @@ export class MeshMessagesTab extends LitElement {
 
         .messages-layout {
           display: flex; gap: 16px;
-          height: calc(100vh - 65px);
+          height: calc(100vh - 80px);
         }
         .conversation-list {
           width: 240px; flex-shrink: 0;
