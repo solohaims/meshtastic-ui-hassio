@@ -307,10 +307,15 @@ class MeshtasticConnection:
             node = iface.localNode
             result: dict[str, Any] = {}
 
+            to_dict_opts = {
+                "preserving_proto_field_name": True,
+                "including_default_value_fields": True,
+            }
+
             # Local config sections.
             if node.localConfig:
                 result["local_config"] = MessageToDict(
-                    node.localConfig, preserving_proto_field_name=True
+                    node.localConfig, **to_dict_opts
                 )
             else:
                 result["local_config"] = {}
@@ -318,7 +323,7 @@ class MeshtasticConnection:
             # Module config sections.
             if node.moduleConfig:
                 result["module_config"] = MessageToDict(
-                    node.moduleConfig, preserving_proto_field_name=True
+                    node.moduleConfig, **to_dict_opts
                 )
             else:
                 result["module_config"] = {}
@@ -326,7 +331,7 @@ class MeshtasticConnection:
             # Channels.
             channels = []
             for ch in node.channels or []:
-                channels.append(MessageToDict(ch, preserving_proto_field_name=True))
+                channels.append(MessageToDict(ch, **to_dict_opts))
             result["channels"] = channels
 
             # Owner info.
