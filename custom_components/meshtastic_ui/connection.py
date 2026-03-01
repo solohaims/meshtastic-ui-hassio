@@ -84,6 +84,32 @@ def _apply_protobuf_values(
                 )
 
 
+def _fill_enum_defaults(proto_obj: Any, d: dict[str, Any]) -> None:
+    """Fill in missing enum fields with their default (value-0) string name.
+
+    MessageToDict omits proto3 fields at their default value.  For enum
+    fields the default is 0, so e.g. gps_mode=DISABLED is silently dropped.
+    This walks the descriptor and adds any missing enum fields back with
+    the string name of value 0.  Recurses into sub-messages.
+    """
+    from google.protobuf.descriptor import FieldDescriptor
+
+    for field in proto_obj.DESCRIPTOR.fields:
+        if field.type == FieldDescriptor.TYPE_ENUM:
+            if field.name not in d:
+                enum_val = field.enum_type.values_by_number.get(0)
+                if enum_val:
+                    d[field.name] = enum_val.name
+        elif (
+            field.message_type is not None
+            and field.label != FieldDescriptor.LABEL_REPEATED
+        ):
+            sub_dict = d.get(field.name)
+            if isinstance(sub_dict, dict):
+                sub_msg = getattr(proto_obj, field.name)
+                _fill_enum_defaults(sub_msg, sub_dict)
+
+
 class ConnectionType(enum.StrEnum):
     """Radio connection types."""
 
@@ -307,31 +333,28 @@ class MeshtasticConnection:
             node = iface.localNode
             result: dict[str, Any] = {}
 
-            to_dict_opts = {
-                "preserving_proto_field_name": True,
-                "including_default_value_fields": True,
-            }
-
             # Local config sections.
             if node.localConfig:
                 result["local_config"] = MessageToDict(
-                    node.localConfig, **to_dict_opts
+                    node.localConfig, preserving_proto_field_name=True
                 )
+                _fill_enum_defaults(node.localConfig, result["local_config"])
             else:
                 result["local_config"] = {}
 
             # Module config sections.
             if node.moduleConfig:
                 result["module_config"] = MessageToDict(
-                    node.moduleConfig, **to_dict_opts
+                    node.moduleConfig, preserving_proto_field_name=True
                 )
+                _fill_enum_defaults(node.moduleConfig, result["module_config"])
             else:
                 result["module_config"] = {}
 
             # Channels.
             channels = []
             for ch in node.channels or []:
-                channels.append(MessageToDict(ch, **to_dict_opts))
+                channels.append(MessageToDict(ch, preserving_proto_field_name=True))
             result["channels"] = channels
 
             # Owner info.
