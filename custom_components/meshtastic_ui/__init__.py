@@ -267,6 +267,10 @@ def _register_radio_callbacks(
         if portnum == "WAYPOINT_APP":
             _handle_waypoint(hass, store, packet)
 
+        # Handle node info responses (name, hardware, etc).
+        if portnum == "NODEINFO_APP":
+            _handle_nodeinfo(hass, store, packet)
+
         # Capture LocalStats from our own telemetry.
         if portnum == "TELEMETRY_APP":
             telemetry = decoded.get("telemetry", {})
@@ -597,6 +601,36 @@ def _handle_waypoint(
         SIGNAL_WAYPOINT_UPDATE,
         {"action": "add", "waypoint_id": wp_id, **wp_data},
     )
+
+
+@callback
+def _handle_nodeinfo(
+    hass: HomeAssistant, store: MeshtasticUiStore, packet: dict
+) -> None:
+    """Handle a NODEINFO_APP packet — extract user identity and update the store."""
+    decoded = packet.get("decoded", {})
+    user = decoded.get("user", {})
+    if not user:
+        return
+
+    # The node ID comes from the user payload or the packet sender.
+    node_id = user.get("id") or packet.get("fromId")
+    if not node_id:
+        return
+    node_id = normalize_node_id(node_id)
+
+    data: dict[str, Any] = {}
+    if user.get("longName"):
+        data["name"] = user["longName"]
+    if user.get("shortName"):
+        data["short_name"] = user["shortName"]
+    if user.get("hwModel"):
+        data["hardware_model"] = user["hwModel"]
+
+    if data:
+        _LOGGER.debug("NodeInfo received for %s: %s", node_id, data)
+        store.update_node(node_id, data)
+        async_dispatcher_send(hass, SIGNAL_NODE_UPDATE, node_id)
 
 
 def _sync_nodes_from_radio(
