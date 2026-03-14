@@ -618,6 +618,10 @@ class MeshtasticUiPanel extends LitElement {
         padding: 0 16px;
       }
 
+      ha-menu-button {
+        flex-shrink: 0;
+      }
+
       .tab {
         padding: 12px 20px;
         cursor: pointer;
@@ -859,6 +863,10 @@ class MeshtasticUiPanel extends LitElement {
   render() {
     return html`
       <div class="tabs">
+        <ha-menu-button
+          .hass=${this.hass}
+          .narrow=${this.narrow}
+        ></ha-menu-button>
         ${TABS.map((tab) => {
           const unread = tab === "messages"
             ? Object.values(this._unreadCounts).reduce((a, b) => a + b, 0) : 0;
