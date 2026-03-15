@@ -625,13 +625,15 @@ class MeshtasticUiPanel extends LitElement {
       .menu-btn {
         display: flex;
         align-items: center;
-        padding: 12px 8px 12px 0;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        margin-left: -12px;
+        margin-right: 4px;
         cursor: pointer;
-        color: var(--secondary-text-color);
-        border-bottom: 2px solid transparent;
-      }
-      .menu-btn:hover {
         color: var(--primary-text-color);
+        border-bottom: 2px solid transparent;
+        --mdc-icon-size: 24px;
       }
 
       .tab {
