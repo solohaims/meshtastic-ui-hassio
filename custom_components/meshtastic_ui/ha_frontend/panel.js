@@ -628,7 +628,7 @@ class MeshtasticUiPanel extends LitElement {
         justify-content: center;
         width: 48px;
         height: 48px;
-        margin-left: -12px;
+        margin-left: -4px;
         margin-right: 4px;
         cursor: pointer;
         color: var(--primary-text-color);
