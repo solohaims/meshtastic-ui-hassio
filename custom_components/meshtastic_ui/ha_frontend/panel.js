@@ -617,6 +617,7 @@ class MeshtasticUiPanel extends LitElement {
 
       .tabs {
         display: flex;
+        align-items: center;
         border-bottom: 1px solid var(--divider-color);
         background: var(--card-background-color);
         padding: 0 16px;
