@@ -655,6 +655,8 @@ class MeshtasticUiPanel extends LitElement {
         color: var(--secondary-text-color);
         transition: all 0.2s;
         user-select: none;
+        display: flex;
+        align-items: center;
       }
 
       .tab:hover {
