@@ -375,9 +375,9 @@ class MeshtasticConnection:
             else:
                 result["module_config"] = {}
 
-            # Channels.
+            # Channels (radio supports indices 0-7 only).
             channels = []
-            for ch in node.channels or []:
+            for ch in (node.channels or [])[:8]:
                 channels.append(MessageToDict(ch, preserving_proto_field_name=True))
             result["channels"] = channels
 

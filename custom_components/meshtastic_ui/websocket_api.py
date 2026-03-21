@@ -154,7 +154,7 @@ async def ws_gateways(
             pass
 
         try:
-            for ch in iface.localNode.channels or []:
+            for ch in (iface.localNode.channels or [])[:8]:
                 if ch.role == 0:  # DISABLED
                     continue
                 ch_settings = ch.settings
