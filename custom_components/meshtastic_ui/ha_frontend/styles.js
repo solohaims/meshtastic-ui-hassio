@@ -332,7 +332,6 @@ export const settingsStyles = css`
   .settings-layout {
     display: flex;
     gap: 16px;
-    height: calc(100vh - 150px);
   }
 
   .settings-nav {
