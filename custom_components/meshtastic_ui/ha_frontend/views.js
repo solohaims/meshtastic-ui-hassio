@@ -666,10 +666,9 @@ export class MeshMessagesTab extends LitElement {
         }
 
         .hops-badge {
-          font-size: 10px; color: var(--secondary-text-color);
-          margin-left: 6px; opacity: 0.7;
+          font-size: 11px; margin-left: 5px; opacity: 0.75;
+          cursor: default;
         }
-        .chat-bubble.outgoing .hops-badge { color: rgba(255,255,255,0.6); }
 
         .chat-bubble-wrapper.unread .chat-bubble.incoming {
           border-left: 3px solid var(--primary-color);
@@ -780,7 +779,7 @@ export class MeshMessagesTab extends LitElement {
                       ` : ""}
                       <div>${msg.text}</div>
                       <div class="time">
-                        ${formatTime(msg.timestamp)}${msg.hops_away != null ? html`<span class="hops-badge">&middot; ${msg.hops_away} hop${msg.hops_away !== 1 ? "s" : ""}</span>` : ""}${delivery ? html`<span class="delivery-icon ${delivery.status}">${delivery.status === "delivered" ? "\u2713\u2713" : delivery.status === "failed" ? "\u2717" : "\u231B"}</span>` : ""}${msg.channel != null ? html`<span class="encryption-badge" title="Channel ${msg.channel}">\uD83D\uDD12</span>` : ""}
+                        ${formatTime(msg.timestamp)}${msg.hops_away != null ? html`<span class="hops-badge" title="${msg.hops_away === 0 ? "Direct" : `${msg.hops_away} hop${msg.hops_away !== 1 ? "s" : ""}` }">🐇${msg.hops_away > 0 ? `×${msg.hops_away}` : ""}</span>` : ""}${delivery ? html`<span class="delivery-icon ${delivery.status}">${delivery.status === "delivered" ? "\u2713\u2713" : delivery.status === "failed" ? "\u2717" : "\u231B"}</span>` : ""}${msg.channel != null ? html`<span class="encryption-badge" title="Channel ${msg.channel}">\uD83D\uDD12</span>` : ""}
                       </div>
                     </div>
                     ${hasActions ? html`
