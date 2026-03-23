@@ -104,11 +104,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register radio callbacks.
     _register_radio_callbacks(hass, store, connection)
 
-    # Connect to the radio.
-    try:
-        await connection.async_connect()
-    except Exception:  # noqa: BLE001
-        _LOGGER.error("Initial connection to Meshtastic radio failed; will retry")
+    # Connect to the radio (retries automatically on failure).
+    await connection.async_connect()
 
     # Sync nodes from radio's mesh database and seed time-series snapshots.
     _sync_nodes_from_radio(hass, store, connection)

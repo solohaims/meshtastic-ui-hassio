@@ -252,10 +252,15 @@ class MeshtasticConnection:
                 "Connected to Meshtastic radio via %s", self._connection_type
             )
         except Exception as err:
-            _LOGGER.error("Failed to connect to Meshtastic radio: %s", err)
+            _LOGGER.warning(
+                "Initial connection to Meshtastic radio failed (%s), will retry", err
+            )
             self._interface = None
-            self._set_state(ConnectionState.DISCONNECTED)
-            raise
+            self._set_state(ConnectionState.RECONNECTING)
+            if self._reconnect_task is None or self._reconnect_task.done():
+                self._reconnect_task = asyncio.ensure_future(
+                    self._async_reconnect_loop()
+                )
 
     async def async_disconnect(self) -> None:
         """Disconnect from the radio and stop reconnection attempts."""
