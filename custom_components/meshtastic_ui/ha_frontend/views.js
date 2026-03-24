@@ -1966,12 +1966,11 @@ export class MeshMapTab extends LitElement {
   }
 
   _createTileLayer(dark) {
-    const lightUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    const lightUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
     const darkUrl = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-    const lightAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-    const darkAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+    const attr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
     return L.tileLayer(dark ? darkUrl : lightUrl, {
-      attribution: dark ? darkAttr : lightAttr,
+      attribution: attr,
       maxZoom: 19,
       noWrap: true,
     });
