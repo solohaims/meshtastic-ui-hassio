@@ -465,7 +465,7 @@ def _handle_text_message(
                     # (e.g. persistent_notification) would reject unknown keys.
                     if svc_domain == "notify":
                         service_data["data"] = {
-                            "channel": channel_index,
+                            "channel": channel_key,
                             "from": sender_id,
                             "timestamp": timestamp,
                         }
