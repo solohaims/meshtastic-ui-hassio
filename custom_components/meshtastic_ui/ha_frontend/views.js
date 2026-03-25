@@ -2071,6 +2071,7 @@ export class MeshMapTab extends LitElement {
 
     // Restore saved position/zoom or use defaults.
     const savedView = JSON.parse(localStorage.getItem("meshtastic_map_view") || "null");
+    this._savedViewRestored = !!savedView;
     const initCenter = savedView ? [savedView.lat, savedView.lng] : [20, 0];
     const initZoom = savedView ? savedView.zoom : 3;
 
@@ -2163,9 +2164,10 @@ export class MeshMapTab extends LitElement {
       bounds.push([lat, lon]);
     }
 
-    if (bounds.length > 0 && this._mapInstance && !this._hasRestoredView) {
-      this._hasRestoredView = true;
-      if (!localStorage.getItem("meshtastic_map_view")) {
+    if (bounds.length > 0 && this._mapInstance && !this._hasFittedBounds) {
+      this._hasFittedBounds = true;
+      // Only auto-fit if user has no saved map position.
+      if (!this._savedViewRestored) {
         this._mapInstance.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
       }
     }
