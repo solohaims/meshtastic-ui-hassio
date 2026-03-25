@@ -2163,8 +2163,11 @@ export class MeshMapTab extends LitElement {
       bounds.push([lat, lon]);
     }
 
-    if (bounds.length > 0 && this._mapInstance) {
-      this._mapInstance.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+    if (bounds.length > 0 && this._mapInstance && !this._hasRestoredView) {
+      this._hasRestoredView = true;
+      if (!localStorage.getItem("meshtastic_map_view")) {
+        this._mapInstance.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+      }
     }
   }
 
