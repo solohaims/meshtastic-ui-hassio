@@ -951,6 +951,7 @@ export class MeshNodesTab extends LitElement {
     this._filtersExpanded = false;
     this._sortColumn = "name";
     this._sortAsc = true;
+    this._loadFilterState();
     // Node dialog
     this._selectedNodeId = null;
     this._selectedNode = null;
@@ -1152,7 +1153,7 @@ export class MeshNodesTab extends LitElement {
             @input=${(e) => { this._searchText = e.target.value; this.requestUpdate(); }}
           />
           <button class="filter-toggle-btn"
-            @click=${() => { this._filtersExpanded = !this._filtersExpanded; this.requestUpdate(); }}
+            @click=${() => { this._filtersExpanded = !this._filtersExpanded; this._saveFilterState(); this.requestUpdate(); }}
           >Filters ${this._filtersExpanded ? "\u25B2" : "\u25BC"}</button>
         </div>
         ${this._filtersExpanded ? html`
@@ -1160,7 +1161,7 @@ export class MeshNodesTab extends LitElement {
             <div class="filter-group">
               <label>Last Heard</label>
               <select .value=${this._filterLastHeard}
-                @change=${(e) => { this._filterLastHeard = e.target.value; this.requestUpdate(); }}>
+                @change=${(e) => { this._filterLastHeard = e.target.value; this._saveFilterState(); this.requestUpdate(); }}>
                 <option value="all">All Time</option>
                 <option value="1h">Last Hour</option>
                 <option value="6h">Last 6 Hours</option>
@@ -1172,7 +1173,7 @@ export class MeshNodesTab extends LitElement {
               <label>Min Battery %</label>
               <input type="number" min="0" max="100"
                 .value=${String(this._filterBatteryMin)}
-                @change=${(e) => { this._filterBatteryMin = parseInt(e.target.value) || 0; this.requestUpdate(); }}
+                @change=${(e) => { this._filterBatteryMin = parseInt(e.target.value) || 0; this._saveFilterState(); this.requestUpdate(); }}
                 style="width: 70px;" />
             </div>
             <div class="filter-group">
@@ -1180,13 +1181,13 @@ export class MeshNodesTab extends LitElement {
               <input type="number" min="0" max="10"
                 .value=${this._filterHopsMax != null ? String(this._filterHopsMax) : ""}
                 placeholder="Any"
-                @change=${(e) => { const v = e.target.value; this._filterHopsMax = v !== "" ? parseInt(v) : null; this.requestUpdate(); }}
+                @change=${(e) => { const v = e.target.value; this._filterHopsMax = v !== "" ? parseInt(v) : null; this._saveFilterState(); this.requestUpdate(); }}
                 style="width: 70px;" />
             </div>
             <div class="filter-group">
               <label>Show</label>
               <select .value=${this._filterFavorites ? "favorites" : "all"}
-                @change=${(e) => { this._filterFavorites = e.target.value === "favorites"; this.requestUpdate(); }}>
+                @change=${(e) => { this._filterFavorites = e.target.value === "favorites"; this._saveFilterState(); this.requestUpdate(); }}>
                 <option value="all">All Nodes</option>
                 <option value="favorites">Favorites Only</option>
               </select>
@@ -1343,7 +1344,39 @@ export class MeshNodesTab extends LitElement {
       this._sortColumn = column;
       this._sortAsc = true;
     }
+    this._saveFilterState();
     this.requestUpdate();
+  }
+
+  _loadFilterState() {
+    try {
+      const raw = localStorage.getItem("meshtastic-ui:node-filters");
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s && typeof s === "object") {
+        if (s.filterLastHeard != null) this._filterLastHeard = s.filterLastHeard;
+        if (s.filterBatteryMin != null) this._filterBatteryMin = s.filterBatteryMin;
+        if (s.filterHopsMax !== undefined) this._filterHopsMax = s.filterHopsMax;
+        if (s.filterFavorites != null) this._filterFavorites = s.filterFavorites;
+        if (s.filtersExpanded != null) this._filtersExpanded = s.filtersExpanded;
+        if (s.sortColumn != null) this._sortColumn = s.sortColumn;
+        if (s.sortAsc != null) this._sortAsc = s.sortAsc;
+      }
+    } catch (_) {}
+  }
+
+  _saveFilterState() {
+    try {
+      localStorage.setItem("meshtastic-ui:node-filters", JSON.stringify({
+        filterLastHeard: this._filterLastHeard,
+        filterBatteryMin: this._filterBatteryMin,
+        filterHopsMax: this._filterHopsMax,
+        filterFavorites: this._filterFavorites,
+        filtersExpanded: this._filtersExpanded,
+        sortColumn: this._sortColumn,
+        sortAsc: this._sortAsc,
+      }));
+    } catch (_) {}
   }
 
   /* ── Node dialog ── */
