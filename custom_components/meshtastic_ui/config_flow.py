@@ -7,6 +7,10 @@ from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.components.bluetooth import (
+    BluetoothServiceInfoBleak,
+    async_discovered_service_info,
+)
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 
 from .const import (
@@ -17,9 +21,12 @@ from .const import (
     CONF_TCP_PORT,
     DEFAULT_TCP_PORT,
     DOMAIN,
+    MESHTASTIC_BLE_SERVICE_UUID,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+MANUAL_ENTRY = "manual"
 
 
 class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -30,6 +37,8 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._connection_type: str | None = None
+        self._discovered_address: str | None = None
+        self._discovered_name: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 1: Choose connection type."""
@@ -58,6 +67,43 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
                     ),
                 }
             ),
+        )
+
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> ConfigFlowResult:
+        """Handle Bluetooth discovery of a Meshtastic device."""
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured()
+
+        self._discovered_address = discovery_info.address
+        self._discovered_name = discovery_info.name or "Meshtastic"
+
+        self.context["title_placeholders"] = {
+            "name": self._discovered_name,
+        }
+
+        return await self.async_step_bluetooth_confirm()
+
+    async def async_step_bluetooth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm Bluetooth discovery."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=f"Meshtastic (BLE {self._discovered_name})",
+                data={
+                    CONF_CONNECTION_TYPE: "ble",
+                    CONF_BLE_ADDRESS: self._discovered_address,
+                },
+            )
+
+        return self.async_show_form(
+            step_id="bluetooth_confirm",
+            description_placeholders={
+                "name": self._discovered_name,
+                "address": self._discovered_address,
+            },
         )
 
     async def async_step_tcp(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -128,7 +174,54 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_ble(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Step 2c: BLE connection details."""
+        """Step 2c: BLE connection details with discovered device picker."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            address = user_input[CONF_BLE_ADDRESS]
+            if address == MANUAL_ENTRY:
+                return await self.async_step_ble_manual()
+
+            error = await self._async_validate_ble(address)
+            if error:
+                errors["base"] = error
+            else:
+                return self.async_create_entry(
+                    title=f"Meshtastic (BLE {address})",
+                    data={
+                        CONF_CONNECTION_TYPE: "ble",
+                        CONF_BLE_ADDRESS: address,
+                    },
+                )
+
+        # Build picker from discovered Meshtastic BLE devices.
+        devices: dict[str, str] = {}
+        for info in async_discovered_service_info(self.hass):
+            if MESHTASTIC_BLE_SERVICE_UUID in [
+                str(u) for u in info.service_uuids
+            ]:
+                label = f"{info.name} ({info.address})" if info.name else info.address
+                devices[info.address] = label
+
+        if devices:
+            devices[MANUAL_ENTRY] = "Enter address manually..."
+            return self.async_show_form(
+                step_id="ble",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(CONF_BLE_ADDRESS): vol.In(devices),
+                    }
+                ),
+                errors=errors,
+            )
+
+        # No discovered devices — fall through to manual entry.
+        return await self.async_step_ble_manual()
+
+    async def async_step_ble_manual(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manual BLE address entry (fallback when no devices discovered)."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -147,7 +240,7 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
 
         return self.async_show_form(
-            step_id="ble",
+            step_id="ble_manual",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_BLE_ADDRESS): str,

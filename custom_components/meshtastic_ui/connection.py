@@ -647,9 +647,11 @@ class MeshtasticConnection:
             return SerialInterface(devPath=self._serial_path)
 
         if self._connection_type == ConnectionType.BLE:
-            from meshtastic.ble_interface import BLEInterface
+            from .ha_ble import create_ha_ble_interface
 
-            return BLEInterface(address=self._ble_address)
+            return create_ha_ble_interface(
+                hass=self._hass, address=self._ble_address
+            )
 
         raise ValueError(f"Unknown connection type: {self._connection_type}")
 

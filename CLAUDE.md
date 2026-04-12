@@ -80,3 +80,9 @@ Commands are registered in `websocket_api.py` with prefix `meshtastic_ui/`. Key 
 - Author: `Daring Designs <contact@daring-designs.com>` — use `--author` flag on every commit
 - Remote: `git@github.com:Daring-Designs/meshtastic-ui-ha.git`
 - Branch: `main`
+
+## Releases
+
+- **Pre-releases**: After every commit pushed to `main`, create a new pre-release with an incremented rc number (e.g. `v1.0.9-rc.5` → `v1.0.9-rc.6`). HACS only detects updates when the tag changes — updating an existing release's assets won't trigger user updates.
+- Use `gh release create <tag> --target main --prerelease --title "<tag>"` with release notes summarizing changes since the last stable release.
+- **Stable releases**: When the rc cycle is done, create a stable release (e.g. `v1.0.9`) with the same notes.

@@ -25,10 +25,21 @@
       },
       "ble": {
         "title": "Bluetooth Connection",
-        "description": "Enter the BLE address of your Meshtastic radio.",
+        "description": "Select a discovered Meshtastic radio or enter a BLE address manually.",
+        "data": {
+          "ble_address": "BLE device"
+        }
+      },
+      "ble_manual": {
+        "title": "Bluetooth Connection",
+        "description": "No Meshtastic radios were discovered. Enter the BLE address manually.",
         "data": {
           "ble_address": "BLE address"
         }
+      },
+      "bluetooth_confirm": {
+        "title": "Meshtastic Radio Discovered",
+        "description": "A Meshtastic radio was discovered via Bluetooth: **{name}** (`{address}`). Do you want to set it up?"
       }
     },
     "error": {
