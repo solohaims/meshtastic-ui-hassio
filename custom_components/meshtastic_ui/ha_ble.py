@@ -44,7 +44,7 @@ class HaBLEClient:
         self._hass = hass
         self._address = address
         self._disconnected_callback = disconnected_callback
-        self._client: Any | None = None  # BleakClientWithServiceCache
+        self._client: Any | None = None  # BleakClient
         self._lock = threading.Lock()
 
     # -- async helpers -------------------------------------------------------
@@ -58,6 +58,7 @@ class HaBLEClient:
 
     def connect(self) -> None:
         """Establish a BLE connection through HA's proxy-aware stack."""
+        _LOGGER.debug("HaBLEClient: connecting to %s via HA Bluetooth", self._address)
         self._run_async(self._async_connect())
 
     async def _async_connect(self) -> None:
@@ -75,10 +76,16 @@ class HaBLEClient:
                 "Ensure a Bluetooth adapter or proxy can reach the device."
             )
 
+        _LOGGER.debug(
+            "HaBLEClient: resolved BLE device %s via HA (source: %s)",
+            ble_device.address,
+            getattr(ble_device, "details", {}).get("source", "local"),
+        )
+
         from bleak import BleakClient
 
         def _on_disconnect(client: Any) -> None:
-            _LOGGER.debug("BLE disconnected: %s", self._address)
+            _LOGGER.debug("HaBLEClient: disconnected from %s", self._address)
             if self._disconnected_callback:
                 self._disconnected_callback(client)
 
@@ -88,7 +95,7 @@ class HaBLEClient:
             self._address,
             disconnected_callback=_on_disconnect,
         )
-        _LOGGER.debug("BLE connected via HA stack: %s", self._address)
+        _LOGGER.info("HaBLEClient: connected to %s via HA Bluetooth", self._address)
 
     def disconnect(self) -> None:
         """Disconnect from the BLE device."""
@@ -105,12 +112,17 @@ class HaBLEClient:
         return_adv: bool = False,
         service_uuids: list[str] | None = None,
     ) -> Any:
-        """Discover BLE devices via HA's Bluetooth stack."""
-        from homeassistant.components.bluetooth import async_discovered_service_info
+        """Discover BLE devices via HA's Bluetooth stack.
 
-        devices = []
+        ``async_discovered_service_info`` must be called from HA's event
+        loop thread, so we schedule it there and block for the result.
+        """
 
-        def _gather() -> list:
+        async def _gather() -> list:
+            from homeassistant.components.bluetooth import (
+                async_discovered_service_info,
+            )
+
             result = []
             for info in async_discovered_service_info(self._hass):
                 if service_uuids:
@@ -120,12 +132,8 @@ class HaBLEClient:
                 result.append(info.device)
             return result
 
-        future = asyncio.run_coroutine_threadsafe(
-            self._hass.async_add_executor_job(_gather),
-            self._hass.loop,
-        )
-        devices = future.result(timeout=timeout + 5)
-        return devices
+        future = asyncio.run_coroutine_threadsafe(_gather(), self._hass.loop)
+        return future.result(timeout=timeout + 5)
 
     def read_gatt_char(self, uuid: str) -> bytes:
         """Read a GATT characteristic."""
@@ -185,13 +193,16 @@ def create_ha_ble_interface(
 ) -> Any:
     """Create a meshtastic BLEInterface that uses HA's Bluetooth stack.
 
-    Temporarily patches meshtastic's BLEClient with our HA-aware version
-    so the standard BLEInterface constructor uses HA proxies transparently.
+    Patches meshtastic's BLEClient and find_device so the standard
+    BLEInterface constructor routes through HA's Bluetooth proxies.
+    ``find_device`` is replaced to skip redundant scanning — we already
+    know the address from HA's discovery.
     """
     import meshtastic.ble_interface as ble_mod
     from meshtastic.ble_interface import BLEInterface
 
     OrigBLEClient = ble_mod.BLEClient
+    orig_find_device = BLEInterface.find_device
 
     class _PatchedBLEClient(HaBLEClient):
         """Adapter that matches the meshtastic BLEClient constructor."""
@@ -203,9 +214,25 @@ def create_ha_ble_interface(
                 disconnected_callback=kwargs.get("disconnected_callback"),
             )
 
+    def _patched_find_device(self_iface: Any, addr: str | None = None) -> Any:
+        """Skip BLE scanning — return a synthetic BLEDevice for the known address.
+
+        HA already discovered the device, so re-scanning is unnecessary and
+        would fail anyway because meshtastic's scan uses raw Bleak.
+        """
+        from bleak import BLEDevice
+
+        target = addr or address
+        _LOGGER.debug(
+            "HaBLEInterface: skipping scan, using known address %s", target
+        )
+        return BLEDevice(address=target, name="Meshtastic")
+
     # Patch, construct, restore.
     ble_mod.BLEClient = _PatchedBLEClient
+    BLEInterface.find_device = _patched_find_device
     try:
+        _LOGGER.debug("HaBLEInterface: creating interface for %s", address)
         iface = BLEInterface(
             address=address,
             noProto=noProto,
@@ -213,5 +240,6 @@ def create_ha_ble_interface(
         )
     finally:
         ble_mod.BLEClient = OrigBLEClient
+        BLEInterface.find_device = orig_find_device
 
     return iface
