@@ -38,7 +38,7 @@ function _tabFromPath() {
   return TABS.includes(tab) ? tab : null;
 }
 
-class MeshtasticUiPanel extends LitElement {
+class MeshtasticUi2Panel extends LitElement {
   static get properties() {
     return {
       hass: { type: Object },
@@ -501,7 +501,7 @@ class MeshtasticUiPanel extends LitElement {
 
   async _onNodeAction(e) {
     const { action, nodeId } = e.detail;
-    const nodesTab = this.shadowRoot.querySelector("mesh-nodes-tab");
+    const nodesTab = this.shadowRoot.querySelector("mesh2-nodes-tab");
 
     if (action === "view-node") {
       this._nodeDialogId = nodeId;
@@ -933,17 +933,17 @@ class MeshtasticUiPanel extends LitElement {
   _renderActiveTab() {
     switch (this._activeTab) {
       case "radio":
-        return html`<mesh-radio-tab
+        return html`<mesh2-radio-tab
           .gateways=${this._gateways}
           .timeSeries=${this._timeSeries}
           .packetTypes=${this._packetTypes}
           .chartWindow=${this._chartWindow}
           .bucketInterval=${this._tsBucketInterval || 10}
           @chart-window-change=${this._onChartWindowChange}
-        ></mesh-radio-tab>`;
+        ></mesh2-radio-tab>`;
       case "messages":
         return html`
-          <mesh-messages-tab
+          <mesh2-messages-tab
             .messages=${this._messages}
             .channels=${this._channels}
             .dms=${this._dms}
@@ -954,11 +954,11 @@ class MeshtasticUiPanel extends LitElement {
             .unreadCounts=${this._unreadCounts}
             @select-conversation=${this._onSelectConversation}
             @send-message=${this._onSendMessage}
-          ></mesh-messages-tab>
+          ></mesh2-messages-tab>
         `;
       case "nodes":
         return html`
-          <mesh-nodes-tab
+          <mesh2-nodes-tab
             .nodes=${this._nodes}
             .favoriteNodes=${this._favoriteNodes}
             .ignoredNodes=${this._ignoredNodes}
@@ -966,16 +966,16 @@ class MeshtasticUiPanel extends LitElement {
             .pendingPosition=${this._pendingPosition}
             .pendingNodeinfo=${this._pendingNodeinfo}
             @node-action=${this._onNodeAction}
-          ></mesh-nodes-tab>
+          ></mesh2-nodes-tab>
         `;
       case "map":
-        return html`<mesh-map-tab .nodes=${this._nodes} .waypoints=${this._waypoints} .traceroutes=${this._traceroutes} .localNodeId=${this._localNodeId} @node-action=${this._onNodeAction} @waypoint-create=${this._onWaypointCreate}></mesh-map-tab>`;
+        return html`<mesh2-map-tab .nodes=${this._nodes} .waypoints=${this._waypoints} .traceroutes=${this._traceroutes} .localNodeId=${this._localNodeId} @node-action=${this._onNodeAction} @waypoint-create=${this._onWaypointCreate}></mesh2-map-tab>`;
       case "settings":
         return html`
-          <mesh-settings-tab
+          <mesh2-settings-tab
             .hass=${this.hass}
             .wsCommand=${(type, data) => this._wsCommand(type, data)}
-          ></mesh-settings-tab>
+          ></mesh2-settings-tab>
         `;
       default:
         return html``;
@@ -1297,4 +1297,4 @@ class MeshtasticUiPanel extends LitElement {
   }
 }
 
-customElements.define("meshtastic-ui-panel", MeshtasticUiPanel);
+customElements.define("meshtastic-ui2-panel", MeshtasticUi2Panel);

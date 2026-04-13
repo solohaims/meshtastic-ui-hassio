@@ -145,7 +145,7 @@ const sharedStyles = css`
 `;
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-radio-tab>
+   <mesh2-radio-tab>
    ══════════════════════════════════════════════════════════ */
 
 const CHART_WINDOW_PRESETS = [
@@ -298,50 +298,50 @@ export class MeshRadioTab extends LitElement {
           </select>
         </div>
         <div class="charts-section">
-          <mesh-horizon-chart
+          <mesh2-horizon-chart
             .data=${ts.channelUtil}
             label="Channel Utilization"
             colorMode="flat"
             flatColor="#42a5f5"
             unit="%"
             .bucketInterval=${bi}
-          ></mesh-horizon-chart>
-          <mesh-horizon-chart
+          ></mesh2-horizon-chart>
+          <mesh2-horizon-chart
             .data=${ts.airtimeTx}
             label="Airtime TX"
             colorMode="flat"
             flatColor="#ffa726"
             unit="%"
             .bucketInterval=${bi}
-          ></mesh-horizon-chart>
-          <mesh-horizon-chart
+          ></mesh2-horizon-chart>
+          <mesh2-horizon-chart
             .data=${ts.battery}
             label="Battery"
             colorMode="value"
             .maxValue=${100}
             unit="%"
             .bucketInterval=${bi}
-          ></mesh-horizon-chart>
-          <mesh-horizon-chart
+          ></mesh2-horizon-chart>
+          <mesh2-horizon-chart
             .data=${ts.packetTx}
             label="Packets TX"
             colorMode="flat"
             flatColor="#9575cd"
             unit="${pktUnit}"
             .bucketInterval=${bi}
-          ></mesh-horizon-chart>
-          <mesh-horizon-chart
+          ></mesh2-horizon-chart>
+          <mesh2-horizon-chart
             .data=${ts.packetRx}
             label="Packets RX"
             colorMode="flat"
             flatColor="#e57373"
             unit="${pktUnit}"
             .bucketInterval=${bi}
-          ></mesh-horizon-chart>
+          ></mesh2-horizon-chart>
         </div>
         ${this.packetTypes ? html`
           <div class="charts-heading" style="margin-top:12px">Packets by Type</div>
-          <mesh-packet-treemap .data=${this.packetTypes}></mesh-packet-treemap>
+          <mesh2-packet-treemap .data=${this.packetTypes}></mesh2-packet-treemap>
         ` : ""}
       ` : ""}
     `;
@@ -418,10 +418,10 @@ export class MeshRadioTab extends LitElement {
     `;
   }
 }
-customElements.define("mesh-radio-tab", MeshRadioTab);
+customElements.define("mesh2-radio-tab", MeshRadioTab);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-messages-tab>
+   <mesh2-messages-tab>
    ══════════════════════════════════════════════════════════ */
 
 export class MeshMessagesTab extends LitElement {
@@ -917,10 +917,10 @@ export class MeshMessagesTab extends LitElement {
     return node?.name || node?.short_name || null;
   }
 }
-customElements.define("mesh-messages-tab", MeshMessagesTab);
+customElements.define("mesh2-messages-tab", MeshMessagesTab);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-nodes-tab>
+   <mesh2-nodes-tab>
    ══════════════════════════════════════════════════════════ */
 
 export class MeshNodesTab extends LitElement {
@@ -1539,10 +1539,10 @@ export class MeshNodesTab extends LitElement {
     this._closeNodeDialog();
   }
 }
-customElements.define("mesh-nodes-tab", MeshNodesTab);
+customElements.define("mesh2-nodes-tab", MeshNodesTab);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-map-tab>
+   <mesh2-map-tab>
    ══════════════════════════════════════════════════════════ */
 
 export class MeshMapTab extends LitElement {
@@ -1846,7 +1846,7 @@ export class MeshMapTab extends LitElement {
 
     return html`
       <div class="map-container ${this._addingWaypoint ? "adding-wp" : ""}">
-        <div id="mesh-map" class="map-element"></div>
+        <div id="mesh2-map" class="map-element"></div>
         <div class="map-controls">
           <button class="layer-btn ${this._showNodes ? "active" : ""}"
             @click=${() => this._toggleLayer("nodes")}>Nodes (${nodesWithPosition.length})</button>
@@ -2099,7 +2099,7 @@ export class MeshMapTab extends LitElement {
   }
 
   _initMap() {
-    const container = this.shadowRoot.querySelector("#mesh-map");
+    const container = this.shadowRoot.querySelector("#mesh2-map");
     if (!container || this._mapInstance) return;
 
     // Restore saved position/zoom or use defaults.
@@ -2372,10 +2372,10 @@ export class MeshMapTab extends LitElement {
     );
   }
 }
-customElements.define("mesh-map-tab", MeshMapTab);
+customElements.define("mesh2-map-tab", MeshMapTab);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-horizon-chart>  –  D3 canvas-based horizon chart
+   <mesh2-horizon-chart>  –  D3 canvas-based horizon chart
    ══════════════════════════════════════════════════════════ */
 
 let _d3Promise = null;
@@ -2683,7 +2683,7 @@ class MeshHorizonChart extends LitElement {
     `;
   }
 }
-customElements.define("mesh-horizon-chart", MeshHorizonChart);
+customElements.define("mesh2-horizon-chart", MeshHorizonChart);
 
 
 /* ── Packet Type Treemap ── */
@@ -2894,4 +2894,4 @@ class MeshPacketTreemap extends LitElement {
     `;
   }
 }
-customElements.define("mesh-packet-treemap", MeshPacketTreemap);
+customElements.define("mesh2-packet-treemap", MeshPacketTreemap);

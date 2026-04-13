@@ -160,7 +160,7 @@ const NAV_ITEMS = [
 ];
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-tab>  —  Container with sidebar navigation
+   <mesh2-settings-tab>  —  Container with sidebar navigation
    ══════════════════════════════════════════════════════════ */
 
 export class MeshSettingsTab extends LitElement {
@@ -268,102 +268,102 @@ export class MeshSettingsTab extends LitElement {
   _renderPanel() {
     switch (this._activePanel) {
       case "lora":
-        return html`<mesh-settings-lora
+        return html`<mesh2-settings-lora
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-lora>`;
+        ></mesh2-settings-lora>`;
       case "channels":
-        return html`<mesh-settings-channels
+        return html`<mesh2-settings-channels
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-channels>`;
+        ></mesh2-settings-channels>`;
       case "user":
-        return html`<mesh-settings-user
+        return html`<mesh2-settings-user
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-user>`;
+        ></mesh2-settings-user>`;
       case "device":
-        return html`<mesh-settings-device
+        return html`<mesh2-settings-device
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-device>`;
+        ></mesh2-settings-device>`;
       case "position":
-        return html`<mesh-settings-position
+        return html`<mesh2-settings-position
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-position>`;
+        ></mesh2-settings-position>`;
       case "power":
-        return html`<mesh-settings-power
+        return html`<mesh2-settings-power
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-power>`;
+        ></mesh2-settings-power>`;
       case "network":
-        return html`<mesh-settings-network
+        return html`<mesh2-settings-network
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-network>`;
+        ></mesh2-settings-network>`;
       case "display":
-        return html`<mesh-settings-display
+        return html`<mesh2-settings-display
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-display>`;
+        ></mesh2-settings-display>`;
       case "bluetooth":
-        return html`<mesh-settings-bluetooth
+        return html`<mesh2-settings-bluetooth
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-bluetooth>`;
+        ></mesh2-settings-bluetooth>`;
       case "security":
-        return html`<mesh-settings-security
+        return html`<mesh2-settings-security
           .config=${this._config}
           .wsCommand=${(type, data) => this._ws(type, data)}
           @config-saved=${this._loadConfig}
-        ></mesh-settings-security>`;
+        ></mesh2-settings-security>`;
       case "mqtt":
-        return html`<mesh-settings-mqtt .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-mqtt>`;
+        return html`<mesh2-settings-mqtt .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-mqtt>`;
       case "serial":
-        return html`<mesh-settings-serial .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-serial>`;
+        return html`<mesh2-settings-serial .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-serial>`;
       case "ext_notification":
-        return html`<mesh-settings-ext-notification .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-ext-notification>`;
+        return html`<mesh2-settings-ext-notification .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-ext-notification>`;
       case "store_forward":
-        return html`<mesh-settings-store-forward .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-store-forward>`;
+        return html`<mesh2-settings-store-forward .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-store-forward>`;
       case "range_test":
-        return html`<mesh-settings-range-test .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-range-test>`;
+        return html`<mesh2-settings-range-test .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-range-test>`;
       case "telemetry":
-        return html`<mesh-settings-telemetry .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-telemetry>`;
+        return html`<mesh2-settings-telemetry .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-telemetry>`;
       case "canned_message":
-        return html`<mesh-settings-canned-message .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-canned-message>`;
+        return html`<mesh2-settings-canned-message .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-canned-message>`;
       case "audio":
-        return html`<mesh-settings-audio .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-audio>`;
+        return html`<mesh2-settings-audio .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-audio>`;
       case "neighbor_info":
-        return html`<mesh-settings-neighbor-info .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-neighbor-info>`;
+        return html`<mesh2-settings-neighbor-info .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-neighbor-info>`;
       case "ambient_lighting":
-        return html`<mesh-settings-ambient-lighting .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-ambient-lighting>`;
+        return html`<mesh2-settings-ambient-lighting .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-ambient-lighting>`;
       case "detection_sensor":
-        return html`<mesh-settings-detection-sensor .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-detection-sensor>`;
+        return html`<mesh2-settings-detection-sensor .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-detection-sensor>`;
       case "paxcounter":
-        return html`<mesh-settings-paxcounter .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh-settings-paxcounter>`;
+        return html`<mesh2-settings-paxcounter .config=${this._config} .wsCommand=${(type, data) => this._ws(type, data)} @config-saved=${this._loadConfig}></mesh2-settings-paxcounter>`;
       case "actions":
-        return html`<mesh-settings-actions
+        return html`<mesh2-settings-actions
           .wsCommand=${(type, data) => this._ws(type, data)}
-        ></mesh-settings-actions>`;
+        ></mesh2-settings-actions>`;
       default:
         return html`<div class="empty-state">Select a settings panel</div>`;
     }
   }
 }
-customElements.define("mesh-settings-tab", MeshSettingsTab);
+customElements.define("mesh2-settings-tab", MeshSettingsTab);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-lora>  —  LoRa radio configuration
+   <mesh2-settings-lora>  —  LoRa radio configuration
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsLora extends LitElement {
@@ -439,117 +439,117 @@ class MeshSettingsLora extends LitElement {
         </div>
         <div class="settings-panel-body">
           <div class="form-grid">
-            <mesh-select
+            <mesh2-select
               label="Region"
               .value=${String(d.region || "UNSET")}
               .options=${REGIONS}
               @change=${(e) => this._updateField("region", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-select
+            <mesh2-select
               label="Modem Preset"
               .value=${String(d.modem_preset || "LONG_FAST")}
               .options=${MODEM_PRESETS}
               @change=${(e) => this._updateField("modem_preset", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Hop Limit"
               description="Max number of hops (1-7)"
               .value=${d.hop_limit ?? 3}
               .min=${1}
               .max=${7}
               @change=${(e) => this._updateField("hop_limit", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="TX Power (dBm)"
               description="Transmit power in dBm (0 = max for region)"
               .value=${d.tx_power ?? 0}
               .min=${0}
               .max=${30}
               @change=${(e) => this._updateField("tx_power", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Frequency Offset (Hz)"
               description="Fine-tune frequency offset"
               .value=${d.frequency_offset ?? 0}
               .step=${100}
               @change=${(e) => this._updateField("frequency_offset", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Bandwidth (kHz)"
               description="Override bandwidth (0 = use preset)"
               .value=${d.bandwidth ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("bandwidth", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Spread Factor"
               description="Override spread factor (0 = use preset)"
               .value=${d.spread_factor ?? 0}
               .min=${0}
               .max=${12}
               @change=${(e) => this._updateField("spread_factor", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Coding Rate"
               description="Override coding rate (0 = use preset)"
               .value=${d.coding_rate ?? 0}
               .min=${0}
               .max=${8}
               @change=${(e) => this._updateField("coding_rate", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
           </div>
 
           <div class="settings-section">
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Options
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="TX Enabled"
               description="Allow radio to transmit"
               .checked=${d.tx_enabled !== false}
               @change=${(e) => this._updateField("tx_enabled", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="Use Preset"
               description="Use the modem preset or custom values"
               .checked=${d.use_preset !== false}
               @change=${(e) => this._updateField("use_preset", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="Override Duty Cycle"
               description="Override regional duty cycle limits (use with caution)"
               .checked=${d.override_duty_cycle === true}
               @change=${(e) => this._updateField("override_duty_cycle", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="Boosted RX Gain"
               description="Enable boosted RX gain on SX1262"
               .checked=${d.sx126x_rx_boosted_gain === true}
               @change=${(e) => this._updateField("sx126x_rx_boosted_gain", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-lora", MeshSettingsLora);
+customElements.define("mesh2-settings-lora", MeshSettingsLora);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-channels>  —  Channel editor for all 8 channels
+   <mesh2-settings-channels>  —  Channel editor for all 8 channels
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsChannels extends LitElement {
@@ -580,7 +580,7 @@ class MeshSettingsChannels extends LitElement {
         .psk-row {
           display: flex; gap: 8px; align-items: flex-end;
         }
-        .psk-row mesh-text-input { flex: 1; }
+        .psk-row mesh2-text-input { flex: 1; }
         .gen-btn {
           padding: 8px 14px;
           border: 1px solid var(--divider-color);
@@ -697,20 +697,20 @@ class MeshSettingsChannels extends LitElement {
         ${isExpanded ? html`
           <div class="channel-card-body">
             <div class="form-grid">
-              <mesh-select
+              <mesh2-select
                 label="Role"
                 .value=${String(draft.role)}
                 .options=${CHANNEL_ROLES}
                 @change=${(e) => this._updateChannelField(index, "role", e.detail.value)}
-              ></mesh-select>
+              ></mesh2-select>
 
-              <mesh-text-input
+              <mesh2-text-input
                 label="Name"
                 .value=${draft.name}
                 .maxlength=${11}
                 placeholder="Channel name"
                 @change=${(e) => this._updateChannelField(index, "name", e.detail.value)}
-              ></mesh-text-input>
+              ></mesh2-text-input>
             </div>
 
             <div style="margin-top: 16px;">
@@ -718,28 +718,28 @@ class MeshSettingsChannels extends LitElement {
                 Encryption Key (PSK)
               </div>
               <div class="psk-row">
-                <mesh-text-input
+                <mesh2-text-input
                   .value=${draft.psk}
                   placeholder="Base64 encoded key"
                   @change=${(e) => this._updateChannelField(index, "psk", e.detail.value)}
-                ></mesh-text-input>
+                ></mesh2-text-input>
                 <button class="gen-btn" @click=${() => this._generatePsk(index)}>Generate</button>
               </div>
             </div>
 
             <div style="margin-top: 16px;">
-              <mesh-toggle
+              <mesh2-toggle
                 label="Uplink Enabled"
                 description="Forward packets from this channel to MQTT"
                 .checked=${draft.uplink_enabled}
                 @change=${(e) => this._updateChannelField(index, "uplink_enabled", e.detail.checked)}
-              ></mesh-toggle>
-              <mesh-toggle
+              ></mesh2-toggle>
+              <mesh2-toggle
                 label="Downlink Enabled"
                 description="Forward packets from MQTT to this channel"
                 .checked=${draft.downlink_enabled}
                 @change=${(e) => this._updateChannelField(index, "downlink_enabled", e.detail.checked)}
-              ></mesh-toggle>
+              ></mesh2-toggle>
             </div>
 
             ${isDirty ? html`
@@ -758,10 +758,10 @@ class MeshSettingsChannels extends LitElement {
     `;
   }
 }
-customElements.define("mesh-settings-channels", MeshSettingsChannels);
+customElements.define("mesh2-settings-channels", MeshSettingsChannels);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-user>  —  Owner / user configuration
+   <mesh2-settings-user>  —  Owner / user configuration
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsUser extends LitElement {
@@ -842,48 +842,48 @@ class MeshSettingsUser extends LitElement {
         </div>
         <div class="settings-panel-body">
           <div class="form-grid">
-            <mesh-text-input
+            <mesh2-text-input
               label="Long Name"
               description="Your radio's display name on the mesh (max 39 chars)"
               .value=${d.longName || ""}
               .maxlength=${39}
               placeholder="My Meshtastic Radio"
               @change=${(e) => this._updateField("longName", e.detail.value)}
-            ></mesh-text-input>
+            ></mesh2-text-input>
 
-            <mesh-text-input
+            <mesh2-text-input
               label="Short Name"
               description="4-character abbreviation shown on compact displays"
               .value=${d.shortName || ""}
               .maxlength=${4}
               placeholder="ABCD"
               @change=${(e) => this._updateField("shortName", e.detail.value)}
-            ></mesh-text-input>
+            ></mesh2-text-input>
           </div>
 
           <div class="settings-section">
-            <mesh-toggle
+            <mesh2-toggle
               label="Licensed Operator"
               description="If enabled, your node will use HAM mode with longer names and no encryption"
               .checked=${d.isLicensed === true}
               @change=${(e) => this._updateField("isLicensed", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-user", MeshSettingsUser);
+customElements.define("mesh2-settings-user", MeshSettingsUser);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-actions>  —  Device management actions
+   <mesh2-settings-actions>  —  Device management actions
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsActions extends LitElement {
@@ -1000,7 +1000,7 @@ class MeshSettingsActions extends LitElement {
         </div>
       </div>
 
-      <mesh-confirm-dialog
+      <mesh2-confirm-dialog
         .open=${this._confirmAction != null}
         .title=${this._confirmAction?.name || ""}
         .message=${`Are you sure you want to ${(this._confirmAction?.name || "").toLowerCase()}? ${this._confirmAction?.danger ? "This action cannot be undone." : ""}`}
@@ -1008,7 +1008,7 @@ class MeshSettingsActions extends LitElement {
         .danger=${this._confirmAction?.danger || false}
         @confirm=${this._executeAction}
         @cancel=${() => { this._confirmAction = null; this.requestUpdate(); }}
-      ></mesh-confirm-dialog>
+      ></mesh2-confirm-dialog>
     `;
   }
 
@@ -1042,7 +1042,7 @@ class MeshSettingsActions extends LitElement {
     }, 5000);
   }
 }
-customElements.define("mesh-settings-actions", MeshSettingsActions);
+customElements.define("mesh2-settings-actions", MeshSettingsActions);
 
 /* ══════════════════════════════════════════════════════════
    Reusable base class for simple config-section panels
@@ -1116,7 +1116,7 @@ class ConfigSectionPanel extends LitElement {
 }
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-device>  —  Device role, rebroadcast, GPIO, etc.
+   <mesh2-settings-device>  —  Device role, rebroadcast, GPIO, etc.
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsDevice extends ConfigSectionPanel {
@@ -1132,81 +1132,81 @@ class MeshSettingsDevice extends ConfigSectionPanel {
         </div>
         <div class="settings-panel-body">
           <div class="form-grid">
-            <mesh-select
+            <mesh2-select
               label="Device Role"
               description="Determines how the device behaves on the mesh"
               .value=${String(d.role || "CLIENT")}
               .options=${DEVICE_ROLES}
               @change=${(e) => this._updateField("role", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-select
+            <mesh2-select
               label="Rebroadcast Mode"
               description="Controls which messages this node rebroadcasts"
               .value=${String(d.rebroadcast_mode || "ALL")}
               .options=${REBROADCAST_MODES}
               @change=${(e) => this._updateField("rebroadcast_mode", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Node Info Broadcast Secs"
               description="How often to broadcast node info (seconds, 0 = default)"
               .value=${d.node_info_broadcast_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("node_info_broadcast_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Button GPIO"
               description="GPIO pin for user button (0 = default)"
               .value=${d.button_gpio ?? 0}
               .min=${0}
               .max=${48}
               @change=${(e) => this._updateField("button_gpio", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Buzzer GPIO"
               description="GPIO pin for buzzer (0 = default)"
               .value=${d.buzzer_gpio ?? 0}
               .min=${0}
               .max=${48}
               @change=${(e) => this._updateField("buzzer_gpio", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
           </div>
 
           <div class="settings-section">
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Options
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="Double Tap as Button Press"
               description="Use double-tap on the device as a button press"
               .checked=${d.double_tap_as_button_press === true}
               @change=${(e) => this._updateField("double_tap_as_button_press", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="LED Heartbeat Disabled"
               description="Disable the LED heartbeat indicator"
               .checked=${d.led_heartbeat_disabled === true}
               @change=${(e) => this._updateField("led_heartbeat_disabled", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-device", MeshSettingsDevice);
+customElements.define("mesh2-settings-device", MeshSettingsDevice);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-position>  —  GPS mode, fixed position, broadcast intervals
+   <mesh2-settings-position>  —  GPS mode, fixed position, broadcast intervals
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsPosition extends ConfigSectionPanel {
@@ -1222,94 +1222,94 @@ class MeshSettingsPosition extends ConfigSectionPanel {
         </div>
         <div class="settings-panel-body">
           <div class="form-grid">
-            <mesh-select
+            <mesh2-select
               label="GPS Mode"
               description="How the device obtains its position"
               .value=${String(d.gps_mode || "ENABLED")}
               .options=${GPS_MODES}
               @change=${(e) => this._updateField("gps_mode", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Position Broadcast Secs"
               description="How often to broadcast position (seconds, 0 = default)"
               .value=${d.position_broadcast_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("position_broadcast_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Broadcast Smart Min Distance (m)"
               description="Min distance to move before broadcasting (0 = disabled)"
               .value=${d.broadcast_smart_minimum_distance ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("broadcast_smart_minimum_distance", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Broadcast Smart Min Interval (secs)"
               description="Min interval between smart broadcasts"
               .value=${d.broadcast_smart_minimum_interval_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("broadcast_smart_minimum_interval_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="GPS Update Interval (secs)"
               description="How often the GPS hardware checks position"
               .value=${d.gps_update_interval ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("gps_update_interval", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="RX GPIO"
               description="GPIO pin for GPS RX (0 = default)"
               .value=${d.rx_gpio ?? 0}
               .min=${0}
               .max=${48}
               @change=${(e) => this._updateField("rx_gpio", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="TX GPIO"
               description="GPIO pin for GPS TX (0 = default)"
               .value=${d.tx_gpio ?? 0}
               .min=${0}
               .max=${48}
               @change=${(e) => this._updateField("tx_gpio", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
           </div>
 
           <div class="settings-section">
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Fixed Position
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="Fixed Position"
               description="Use a fixed position instead of GPS"
               .checked=${d.fixed_position === true}
               @change=${(e) => this._updateField("fixed_position", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
             ${d.fixed_position ? html`
               <div class="form-grid" style="margin-top: 12px;">
-                <mesh-number-input
+                <mesh2-number-input
                   label="Latitude"
                   .value=${d.fixed_lat ?? 0}
                   .step=${0.000001}
                   @change=${(e) => this._updateField("fixed_lat", e.detail.value)}
-                ></mesh-number-input>
-                <mesh-number-input
+                ></mesh2-number-input>
+                <mesh2-number-input
                   label="Longitude"
                   .value=${d.fixed_lng ?? 0}
                   .step=${0.000001}
                   @change=${(e) => this._updateField("fixed_lng", e.detail.value)}
-                ></mesh-number-input>
-                <mesh-number-input
+                ></mesh2-number-input>
+                <mesh2-number-input
                   label="Altitude (m)"
                   .value=${d.fixed_altitude ?? 0}
                   @change=${(e) => this._updateField("fixed_altitude", e.detail.value)}
-                ></mesh-number-input>
+                ></mesh2-number-input>
               </div>
             ` : ""}
           </div>
@@ -1318,34 +1318,34 @@ class MeshSettingsPosition extends ConfigSectionPanel {
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Options
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="Smart Position Broadcast"
               description="Only broadcast position when movement is detected"
               .checked=${d.position_broadcast_smart_enabled === true}
               @change=${(e) => this._updateField("position_broadcast_smart_enabled", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="GPS Enabled"
               description="Enable the onboard GPS hardware"
               .checked=${d.gps_enabled === true}
               @change=${(e) => this._updateField("gps_enabled", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-position", MeshSettingsPosition);
+customElements.define("mesh2-settings-position", MeshSettingsPosition);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-power>  —  Power saving, sleep, ADC
+   <mesh2-settings-power>  —  Power saving, sleep, ADC
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsPower extends ConfigSectionPanel {
@@ -1361,74 +1361,74 @@ class MeshSettingsPower extends ConfigSectionPanel {
         </div>
         <div class="settings-panel-body">
           <div class="form-grid">
-            <mesh-number-input
+            <mesh2-number-input
               label="On Battery Shutdown After (secs)"
               description="Auto-shutdown after this many seconds on battery (0 = disabled)"
               .value=${d.on_battery_shutdown_after_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("on_battery_shutdown_after_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Min Wake Secs"
               description="Minimum time to stay awake (seconds)"
               .value=${d.min_wake_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("min_wake_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Light Sleep Interval (secs)"
               description="Light sleep interval for power saving"
               .value=${d.ls_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("ls_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Wait Bluetooth Secs"
               description="Seconds to wait for Bluetooth before sleeping"
               .value=${d.wait_bluetooth_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("wait_bluetooth_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="ADC Multiplier Override"
               description="Override voltage divider ratio for battery reading (0 = auto)"
               .value=${d.adc_multiplier_override ?? 0}
               .min=${0}
               .step=${0.01}
               @change=${(e) => this._updateField("adc_multiplier_override", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
           </div>
 
           <div class="settings-section">
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Options
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="Power Saving"
               description="Enable power saving mode (light sleep between operations)"
               .checked=${d.is_power_saving === true}
               @change=${(e) => this._updateField("is_power_saving", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-power", MeshSettingsPower);
+customElements.define("mesh2-settings-power", MeshSettingsPower);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-network>  —  WiFi, Ethernet, NTP, Syslog
+   <mesh2-settings-network>  —  WiFi, Ethernet, NTP, Syslog
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsNetwork extends ConfigSectionPanel {
@@ -1447,26 +1447,26 @@ class MeshSettingsNetwork extends ConfigSectionPanel {
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               WiFi
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="WiFi Enabled"
               description="Enable WiFi connectivity"
               .checked=${d.wifi_enabled === true}
               @change=${(e) => this._updateField("wifi_enabled", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
             ${d.wifi_enabled ? html`
               <div class="form-grid" style="margin-top: 12px;">
-                <mesh-text-input
+                <mesh2-text-input
                   label="WiFi SSID"
                   .value=${d.wifi_ssid || ""}
                   placeholder="Network name"
                   @change=${(e) => this._updateField("wifi_ssid", e.detail.value)}
-                ></mesh-text-input>
-                <mesh-text-input
+                ></mesh2-text-input>
+                <mesh2-text-input
                   label="WiFi Password"
                   .value=${d.wifi_psk || ""}
                   placeholder="Password"
                   @change=${(e) => this._updateField("wifi_psk", e.detail.value)}
-                ></mesh-text-input>
+                ></mesh2-text-input>
               </div>
             ` : ""}
           </div>
@@ -1475,12 +1475,12 @@ class MeshSettingsNetwork extends ConfigSectionPanel {
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Ethernet
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="Ethernet Enabled"
               description="Enable Ethernet connectivity"
               .checked=${d.eth_enabled === true}
               @change=${(e) => this._updateField("eth_enabled", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
 
           <div class="settings-section">
@@ -1488,31 +1488,31 @@ class MeshSettingsNetwork extends ConfigSectionPanel {
               IP Configuration
             </div>
             <div class="form-grid">
-              <mesh-text-input
+              <mesh2-text-input
                 label="IPv4 Address"
                 description="Static IPv4 address (leave empty for DHCP)"
                 .value=${d.ipv4_config?.ip ? this._intToIp(d.ipv4_config.ip) : ""}
                 placeholder="0.0.0.0"
                 @change=${(e) => this._updateField("ipv4_config", { ...d.ipv4_config, ip: this._ipToInt(e.detail.value) })}
-              ></mesh-text-input>
-              <mesh-text-input
+              ></mesh2-text-input>
+              <mesh2-text-input
                 label="Gateway"
                 .value=${d.ipv4_config?.gateway ? this._intToIp(d.ipv4_config.gateway) : ""}
                 placeholder="0.0.0.0"
                 @change=${(e) => this._updateField("ipv4_config", { ...d.ipv4_config, gateway: this._ipToInt(e.detail.value) })}
-              ></mesh-text-input>
-              <mesh-text-input
+              ></mesh2-text-input>
+              <mesh2-text-input
                 label="Subnet Mask"
                 .value=${d.ipv4_config?.subnet ? this._intToIp(d.ipv4_config.subnet) : ""}
                 placeholder="255.255.255.0"
                 @change=${(e) => this._updateField("ipv4_config", { ...d.ipv4_config, subnet: this._ipToInt(e.detail.value) })}
-              ></mesh-text-input>
-              <mesh-text-input
+              ></mesh2-text-input>
+              <mesh2-text-input
                 label="DNS Server"
                 .value=${d.ipv4_config?.dns ? this._intToIp(d.ipv4_config.dns) : ""}
                 placeholder="0.0.0.0"
                 @change=${(e) => this._updateField("ipv4_config", { ...d.ipv4_config, dns: this._ipToInt(e.detail.value) })}
-              ></mesh-text-input>
+              ></mesh2-text-input>
             </div>
           </div>
 
@@ -1521,29 +1521,29 @@ class MeshSettingsNetwork extends ConfigSectionPanel {
               Services
             </div>
             <div class="form-grid">
-              <mesh-text-input
+              <mesh2-text-input
                 label="NTP Server"
                 description="Custom NTP server address"
                 .value=${d.ntp_server || ""}
                 placeholder="0.pool.ntp.org"
                 @change=${(e) => this._updateField("ntp_server", e.detail.value)}
-              ></mesh-text-input>
-              <mesh-text-input
+              ></mesh2-text-input>
+              <mesh2-text-input
                 label="Syslog Server"
                 description="Remote syslog server (host:port)"
                 .value=${d.rsyslog_server || ""}
                 placeholder="192.168.1.100:514"
                 @change=${(e) => this._updateField("rsyslog_server", e.detail.value)}
-              ></mesh-text-input>
+              ></mesh2-text-input>
             </div>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
@@ -1560,10 +1560,10 @@ class MeshSettingsNetwork extends ConfigSectionPanel {
     return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
   }
 }
-customElements.define("mesh-settings-network", MeshSettingsNetwork);
+customElements.define("mesh2-settings-network", MeshSettingsNetwork);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-display>  —  Screen, units, OLED, flip
+   <mesh2-settings-display>  —  Screen, units, OLED, flip
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsDisplay extends ConfigSectionPanel {
@@ -1579,93 +1579,93 @@ class MeshSettingsDisplay extends ConfigSectionPanel {
         </div>
         <div class="settings-panel-body">
           <div class="form-grid">
-            <mesh-number-input
+            <mesh2-number-input
               label="Screen On Secs"
               description="How long the screen stays on (0 = always on)"
               .value=${d.screen_on_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("screen_on_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Auto Carousel Secs"
               description="Seconds between auto-cycling pages (0 = disabled)"
               .value=${d.auto_screen_carousel_secs ?? 0}
               .min=${0}
               @change=${(e) => this._updateField("auto_screen_carousel_secs", e.detail.value)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
 
-            <mesh-select
+            <mesh2-select
               label="Display Units"
               .value=${String(d.units || "METRIC")}
               .options=${DISPLAY_UNITS}
               @change=${(e) => this._updateField("units", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-select
+            <mesh2-select
               label="Display Mode"
               description="Color mode for the display"
               .value=${String(d.displaymode || "DEFAULT")}
               .options=${DISPLAY_MODES}
               @change=${(e) => this._updateField("displaymode", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-select
+            <mesh2-select
               label="OLED Type"
               description="OLED display hardware type"
               .value=${String(d.oled || "OLED_AUTO")}
               .options=${OLED_TYPES}
               @change=${(e) => this._updateField("oled", e.detail.value)}
-            ></mesh-select>
+            ></mesh2-select>
 
-            <mesh-number-input
+            <mesh2-number-input
               label="Heading Bold"
               description="Use bold for heading text (0 = no, 1 = yes)"
               .value=${d.heading_bold ? 1 : 0}
               .min=${0}
               .max=${1}
               @change=${(e) => this._updateField("heading_bold", e.detail.value === 1)}
-            ></mesh-number-input>
+            ></mesh2-number-input>
           </div>
 
           <div class="settings-section">
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Options
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="Flip Screen"
               description="Rotate the display 180 degrees"
               .checked=${d.flip_screen === true}
               @change=${(e) => this._updateField("flip_screen", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="Wake on Tap or Motion"
               description="Wake the screen when motion is detected"
               .checked=${d.wake_on_tap_or_motion === true}
               @change=${(e) => this._updateField("wake_on_tap_or_motion", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="Compass North Top"
               description="Always orient compass with north at top"
               .checked=${d.compass_north_top === true}
               @change=${(e) => this._updateField("compass_north_top", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-display", MeshSettingsDisplay);
+customElements.define("mesh2-settings-display", MeshSettingsDisplay);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-bluetooth>  —  Enable, pairing, PIN
+   <mesh2-settings-bluetooth>  —  Enable, pairing, PIN
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsBluetooth extends ConfigSectionPanel {
@@ -1681,53 +1681,53 @@ class MeshSettingsBluetooth extends ConfigSectionPanel {
         </div>
         <div class="settings-panel-body">
           <div class="settings-section">
-            <mesh-toggle
+            <mesh2-toggle
               label="Bluetooth Enabled"
               description="Enable Bluetooth radio"
               .checked=${d.enabled !== false}
               @change=${(e) => this._updateField("enabled", e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
 
           ${d.enabled !== false ? html`
             <div class="settings-section">
               <div class="form-grid">
-                <mesh-select
+                <mesh2-select
                   label="Pairing Mode"
                   description="How the device pairs with Bluetooth clients"
                   .value=${String(d.mode || "RANDOM_PIN")}
                   .options=${BT_PAIRING_MODES}
                   @change=${(e) => this._updateField("mode", e.detail.value)}
-                ></mesh-select>
+                ></mesh2-select>
 
                 ${String(d.mode) === "FIXED_PIN" ? html`
-                  <mesh-number-input
+                  <mesh2-number-input
                     label="Fixed PIN"
                     description="6-digit pairing PIN"
                     .value=${d.fixed_pin ?? 123456}
                     .min=${100000}
                     .max=${999999}
                     @change=${(e) => this._updateField("fixed_pin", e.detail.value)}
-                  ></mesh-number-input>
+                  ></mesh2-number-input>
                 ` : ""}
               </div>
             </div>
           ` : ""}
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-bluetooth", MeshSettingsBluetooth);
+customElements.define("mesh2-settings-bluetooth", MeshSettingsBluetooth);
 
 /* ══════════════════════════════════════════════════════════
-   <mesh-settings-security>  —  PKI keys (display), admin channel, debug
+   <mesh2-settings-security>  —  PKI keys (display), admin channel, debug
    ══════════════════════════════════════════════════════════ */
 
 class MeshSettingsSecurity extends ConfigSectionPanel {
@@ -1810,14 +1810,14 @@ class MeshSettingsSecurity extends ConfigSectionPanel {
 
           <div class="settings-section">
             <div class="form-grid">
-              <mesh-number-input
+              <mesh2-number-input
                 label="Admin Channel Index"
                 description="Channel index used for admin messages (0 = primary)"
                 .value=${d.admin_channel_enabled ?? 0}
                 .min=${0}
                 .max=${7}
                 @change=${(e) => this._updateField("admin_channel_enabled", e.detail.value)}
-              ></mesh-number-input>
+              ></mesh2-number-input>
             </div>
           </div>
 
@@ -1825,34 +1825,34 @@ class MeshSettingsSecurity extends ConfigSectionPanel {
             <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--secondary-text-color); letter-spacing: 0.5px; margin-bottom: 12px;">
               Options
             </div>
-            <mesh-toggle
+            <mesh2-toggle
               label="Debug Log Enabled"
               description="Enable verbose debug logging on the device"
               .checked=${d.debug_log_api_enabled === true}
               @change=${(e) => this._updateField("debug_log_api_enabled", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="Admin Key Required"
               description="Require admin key for remote administration"
               .checked=${d.is_managed === true}
               @change=${(e) => this._updateField("is_managed", e.detail.checked)}
-            ></mesh-toggle>
-            <mesh-toggle
+            ></mesh2-toggle>
+            <mesh2-toggle
               label="Serial Console Disabled"
               description="Disable serial console access for security"
               .checked=${d.serial_enabled === false}
               @change=${(e) => this._updateField("serial_enabled", !e.detail.checked)}
-            ></mesh-toggle>
+            ></mesh2-toggle>
           </div>
         </div>
-        <mesh-save-bar
+        <mesh2-save-bar
           .dirty=${this._dirty}
           .saving=${this._saving}
           @save=${this._save}
           @discard=${this._resetDraft}
-        ></mesh-save-bar>
+        ></mesh2-save-bar>
       </div>
     `;
   }
 }
-customElements.define("mesh-settings-security", MeshSettingsSecurity);
+customElements.define("mesh2-settings-security", MeshSettingsSecurity);

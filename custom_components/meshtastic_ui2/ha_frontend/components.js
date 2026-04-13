@@ -4,7 +4,7 @@ import {
   css,
 } from "./vendor/lit/lit-element.js";
 
-/* ── <mesh-form-field> ── */
+/* ── <mesh2-form-field> ── */
 export class MeshFormField extends LitElement {
   static get properties() {
     return {
@@ -43,9 +43,9 @@ export class MeshFormField extends LitElement {
     `;
   }
 }
-customElements.define("mesh-form-field", MeshFormField);
+customElements.define("mesh2-form-field", MeshFormField);
 
-/* ── <mesh-toggle> ── */
+/* ── <mesh2-toggle> ── */
 export class MeshToggle extends LitElement {
   static get properties() {
     return {
@@ -148,9 +148,9 @@ export class MeshToggle extends LitElement {
     );
   }
 }
-customElements.define("mesh-toggle", MeshToggle);
+customElements.define("mesh2-toggle", MeshToggle);
 
-/* ── <mesh-select> ── */
+/* ── <mesh2-select> ── */
 export class MeshSelect extends LitElement {
   static get properties() {
     return {
@@ -224,9 +224,9 @@ export class MeshSelect extends LitElement {
     );
   }
 }
-customElements.define("mesh-select", MeshSelect);
+customElements.define("mesh2-select", MeshSelect);
 
-/* ── <mesh-number-input> ── */
+/* ── <mesh2-number-input> ── */
 export class MeshNumberInput extends LitElement {
   static get properties() {
     return {
@@ -301,9 +301,9 @@ export class MeshNumberInput extends LitElement {
     );
   }
 }
-customElements.define("mesh-number-input", MeshNumberInput);
+customElements.define("mesh2-number-input", MeshNumberInput);
 
-/* ── <mesh-text-input> ── */
+/* ── <mesh2-text-input> ── */
 export class MeshTextInput extends LitElement {
   static get properties() {
     return {
@@ -376,9 +376,9 @@ export class MeshTextInput extends LitElement {
     );
   }
 }
-customElements.define("mesh-text-input", MeshTextInput);
+customElements.define("mesh2-text-input", MeshTextInput);
 
-/* ── <mesh-confirm-dialog> ── */
+/* ── <mesh2-confirm-dialog> ── */
 export class MeshConfirmDialog extends LitElement {
   static get properties() {
     return {
@@ -496,9 +496,9 @@ export class MeshConfirmDialog extends LitElement {
     this.dispatchEvent(new CustomEvent("confirm", { bubbles: true, composed: true }));
   }
 }
-customElements.define("mesh-confirm-dialog", MeshConfirmDialog);
+customElements.define("mesh2-confirm-dialog", MeshConfirmDialog);
 
-/* ── <mesh-save-bar> ── */
+/* ── <mesh2-save-bar> ── */
 export class MeshSaveBar extends LitElement {
   static get properties() {
     return {
@@ -580,4 +580,4 @@ export class MeshSaveBar extends LitElement {
     this.dispatchEvent(new CustomEvent("save", { bubbles: true, composed: true }));
   }
 }
-customElements.define("mesh-save-bar", MeshSaveBar);
+customElements.define("mesh2-save-bar", MeshSaveBar);

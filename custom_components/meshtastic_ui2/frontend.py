@@ -41,7 +41,7 @@ async def async_register_panel(hass: HomeAssistant) -> None:
         frontend_url_path=PANEL_URL,
         config={
             "_panel_custom": {
-                "name": "meshtastic-ui-panel",
+                "name": "meshtastic-ui2-panel",
                 "module_url": f"/{PANEL_URL}/{FRONTEND_PATH}/panel.js",
             }
         },

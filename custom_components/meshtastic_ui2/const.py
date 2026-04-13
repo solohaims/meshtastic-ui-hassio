@@ -39,8 +39,8 @@ SIGNAL_NOTIFICATION_PREFS = f"{DOMAIN}_notification_prefs"
 WS_PREFIX = f"{DOMAIN}"
 
 # Frontend
-PANEL_URL = "meshtastic-ui"
-PANEL_TITLE = "Mesh UI"
+PANEL_URL = "meshtastic-ui2"
+PANEL_TITLE = "Mesh UI 2"
 PANEL_ICON = "mdi:radio-handheld"
 FRONTEND_PATH = "frontend"
 
