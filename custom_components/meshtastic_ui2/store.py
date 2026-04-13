@@ -55,11 +55,24 @@ class MeshtasticUiStore:
         self._ignored_nodes: set[str] = set()
         self._waypoints: dict[int, dict[str, Any]] = {}  # wp_id -> waypoint data
         self._traceroutes: dict[str, dict[str, Any]] = {}  # node_id -> last traceroute
+        self._seen_packet_ids: deque[int] = deque(maxlen=200)
         self._notification_prefs: dict[str, Any] = {
             "enabled": False,
             "service": "persistent_notification.create",
             "filter": "all",
         }
+
+    def is_duplicate(self, packet_id: int | None) -> bool:
+        """Check if a packet ID has been seen recently to avoid duplicates.
+
+        Returns True if duplicate, False otherwise (and marks it as seen).
+        """
+        if packet_id is None:
+            return False
+        if packet_id in self._seen_packet_ids:
+            return True
+        self._seen_packet_ids.append(packet_id)
+        return False
 
     async def async_load(self) -> None:
         """Load stored data from disk."""

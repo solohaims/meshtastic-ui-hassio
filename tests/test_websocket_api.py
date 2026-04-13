@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.meshtastic_ui.const import DOMAIN, TS_MAX_POINTS
-from custom_components.meshtastic_ui.store import MeshtasticUiStore
-from custom_components.meshtastic_ui.websocket_api import (
+from custom_components.meshtastic_ui2.const import DOMAIN, TS_MAX_POINTS
+from custom_components.meshtastic_ui2.store import MeshtasticUiStore
+from custom_components.meshtastic_ui2.websocket_api import (
     _downsample,
     ws_messages,
     ws_node_admin,
@@ -91,7 +91,7 @@ class TestWsMessages:
         store.add_dm_message("!aa", {"text": "dm1"})
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/messages"}
+        msg = {"id": 1, "type": "meshtastic_ui2/messages"}
         await _ws_messages(hass, conn, msg)
 
         conn.send_result.assert_called_once()
@@ -106,7 +106,7 @@ class TestWsMessages:
         store.add_channel_message("0", {"text": "ch0"})
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/messages", "entity_id": "0"}
+        msg = {"id": 1, "type": "meshtastic_ui2/messages", "entity_id": "0"}
         await _ws_messages(hass, conn, msg)
 
         result = conn.send_result.call_args[0][1]
@@ -128,7 +128,7 @@ class TestWsNodes:
         store.set_ignored("!eeff0011", True)
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/nodes"}
+        msg = {"id": 1, "type": "meshtastic_ui2/nodes"}
         await _ws_nodes(hass, conn, msg)
 
         result = conn.send_result.call_args[0][1]
@@ -150,7 +150,7 @@ class TestWsStats:
         store.update_node("!aa", {"name": "A"})
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/stats"}
+        msg = {"id": 1, "type": "meshtastic_ui2/stats"}
         await _ws_stats(hass, conn, msg)
 
         result = conn.send_result.call_args[0][1]
@@ -170,7 +170,7 @@ class TestWsSendMessage:
         hass.data[DOMAIN] = hass_data
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/send_message", "text": "hello", "channel": 0}
+        msg = {"id": 1, "type": "meshtastic_ui2/send_message", "text": "hello", "channel": 0}
         await _ws_send_message(hass, conn, msg)
 
         mock_connection.async_send_text.assert_called_once_with(
@@ -189,7 +189,7 @@ class TestWsSendMessage:
         hass.data[DOMAIN] = hass_data
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/send_message", "text": "hey", "to": "!aabbccdd"}
+        msg = {"id": 1, "type": "meshtastic_ui2/send_message", "text": "hey", "to": "!aabbccdd"}
         await _ws_send_message(hass, conn, msg)
 
         mock_connection.async_send_text.assert_called_once_with(
@@ -209,7 +209,7 @@ class TestWsNodeAdmin:
     async def test_favorite(self, hass: HomeAssistant, store: MeshtasticUiStore, mock_connection: MagicMock, hass_data: dict):
         hass.data[DOMAIN] = hass_data
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/node_admin", "node_id": "!aabbccdd", "action": "favorite"}
+        msg = {"id": 1, "type": "meshtastic_ui2/node_admin", "node_id": "!aabbccdd", "action": "favorite"}
         await _ws_node_admin(hass, conn, msg)
 
         assert "!aabbccdd" in store.favorite_nodes
@@ -220,7 +220,7 @@ class TestWsNodeAdmin:
         store.set_favorite("!aabbccdd", True)
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/node_admin", "node_id": "!aabbccdd", "action": "unfavorite"}
+        msg = {"id": 1, "type": "meshtastic_ui2/node_admin", "node_id": "!aabbccdd", "action": "unfavorite"}
         await _ws_node_admin(hass, conn, msg)
 
         assert "!aabbccdd" not in store.favorite_nodes
@@ -228,7 +228,7 @@ class TestWsNodeAdmin:
     async def test_ignore(self, hass: HomeAssistant, store: MeshtasticUiStore, mock_connection: MagicMock, hass_data: dict):
         hass.data[DOMAIN] = hass_data
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/node_admin", "node_id": "!aabbccdd", "action": "ignore"}
+        msg = {"id": 1, "type": "meshtastic_ui2/node_admin", "node_id": "!aabbccdd", "action": "ignore"}
         await _ws_node_admin(hass, conn, msg)
 
         assert "!aabbccdd" in store.ignored_nodes
@@ -239,7 +239,7 @@ class TestWsNodeAdmin:
         store.set_favorite("!aabbccdd", True)
 
         conn = _make_ws_connection()
-        msg = {"id": 1, "type": "meshtastic_ui/node_admin", "node_id": "!aabbccdd", "action": "remove"}
+        msg = {"id": 1, "type": "meshtastic_ui2/node_admin", "node_id": "!aabbccdd", "action": "remove"}
         await _ws_node_admin(hass, conn, msg)
 
         assert "!aabbccdd" not in store.get_nodes()
@@ -248,7 +248,7 @@ class TestWsNodeAdmin:
     async def test_remove_requires_admin(self, hass: HomeAssistant, store: MeshtasticUiStore, mock_connection: MagicMock, hass_data: dict):
         hass.data[DOMAIN] = hass_data
         conn = _make_ws_connection(is_admin=False)
-        msg = {"id": 1, "type": "meshtastic_ui/node_admin", "node_id": "!aabbccdd", "action": "remove"}
+        msg = {"id": 1, "type": "meshtastic_ui2/node_admin", "node_id": "!aabbccdd", "action": "remove"}
         await _ws_node_admin(hass, conn, msg)
 
         conn.send_error.assert_called_once()

@@ -72,9 +72,14 @@ def _get_store(hass: HomeAssistant) -> MeshtasticUiStore:
     return hass.data[DOMAIN]["store"]
 
 
-def _get_connection(hass: HomeAssistant) -> MeshtasticConnection:
-    """Get the connection instance."""
-    return hass.data[DOMAIN]["connection"]
+def _get_connection(hass: HomeAssistant, entry_id: str | None = None) -> MeshtasticConnection:
+    """Get a connection instance. Returns the first one if entry_id is not provided."""
+    connections = hass.data[DOMAIN]["connections"]
+    if entry_id and entry_id in connections:
+        return connections[entry_id]
+    if connections:
+        return next(iter(connections.values()))
+    raise RuntimeError("No Meshtastic connections available")
 
 
 @websocket_command(
@@ -86,68 +91,84 @@ def _get_connection(hass: HomeAssistant) -> MeshtasticConnection:
 async def ws_gateways(
     hass: HomeAssistant, connection: ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """Return our radio's info as the gateway."""
-    conn = _get_connection(hass)
+    """Return all active radio gateways info."""
     gateways: list[dict[str, Any]] = []
+    connections = hass.data[DOMAIN]["connections"]
 
-    my_info = conn.my_info
-    meta = conn.metadata
-    iface = conn.interface
+    for entry_id, conn in connections.items():
+        my_info = conn.my_info
+        meta = conn.metadata
+        iface = conn.interface
 
-    # Build gateway info from the radio's own node and metadata.
-    name = "Meshtastic Radio"
-    model = None
-    firmware = None
-    serial = None
-    sensors: dict[str, Any] = {}
-    channels: list[dict[str, Any]] = []
+        # Get the config entry to extract connection address.
+        entry = hass.config_entries.async_get_entry(entry_id)
+        address = "Unknown"
+        if entry:
+            conf = entry.data
+            conn_type = conf.get(CONF_CONNECTION_TYPE)
+            if conn_type == "tcp":
+                address = f"{conf.get(CONF_TCP_HOSTNAME)}:{conf.get(CONF_TCP_PORT, DEFAULT_TCP_PORT)}"
+            elif conn_type == "serial":
+                address = conf.get(CONF_SERIAL_DEV_PATH, "Serial")
+            elif conn_type == "ble":
+                address = conf.get(CONF_BLE_ADDRESS, "Bluetooth")
 
-    # Extract from our node in the mesh database.
-    user = my_info.get("user", {})
-    if user.get("longName"):
-        name = user["longName"]
-    if user.get("hwModel"):
-        model = user["hwModel"]
+        # Build gateway info from the radio's own node and metadata.
+        name = f"Meshtastic Gateway ({entry_id[:6]})"
+        model = None
+        firmware = None
+        sensors: dict[str, Any] = {}
 
-    # Metadata from the device.
-    if meta.get("firmwareVersion"):
-        firmware = meta["firmwareVersion"]
-    if meta.get("hwModel"):
-        model = model or meta["hwModel"]
+        # Extract from our node in the mesh database.
+        user = my_info.get("user", {})
+        if user.get("longName"):
+            name = user["longName"]
+        if user.get("hwModel"):
+            model = user["hwModel"]
 
-    # Device metrics from our node.
-    device_metrics = my_info.get("deviceMetrics", {})
-    if device_metrics.get("batteryLevel") is not None:
-        sensors["battery"] = device_metrics["batteryLevel"]
-    if device_metrics.get("voltage") is not None:
-        sensors["voltage"] = round(device_metrics["voltage"], 2)
-    if device_metrics.get("channelUtilization") is not None:
-        sensors["channel_utilization"] = round(
-            device_metrics["channelUtilization"], 1
-        )
-    if device_metrics.get("airUtilTx") is not None:
-        sensors["air_util_tx"] = round(device_metrics["airUtilTx"], 1)
-    if device_metrics.get("uptimeSeconds") is not None:
-        sensors["uptime"] = device_metrics["uptimeSeconds"]
+        # Metadata from the device.
+        if meta.get("firmwareVersion"):
+            firmware = meta["firmwareVersion"]
+        if meta.get("hwModel"):
+            model = model or meta["hwModel"]
 
-    # Packet counters from LocalStats telemetry.
-    local_stats = hass.data.get(DOMAIN, {}).get("local_stats", {})
-    if local_stats.get("numPacketsTx") is not None:
-        sensors["packets_tx"] = local_stats["numPacketsTx"]
-    if local_stats.get("numPacketsRx") is not None:
-        sensors["packets_rx"] = local_stats["numPacketsRx"]
-    if local_stats.get("numPacketsRxBad") is not None:
-        sensors["packets_bad"] = local_stats["numPacketsRxBad"]
-    if local_stats.get("numTxRelay") is not None:
-        sensors["packets_relayed"] = local_stats["numTxRelay"]
+        # Device metrics from our node.
+        device_metrics = my_info.get("deviceMetrics", {})
+        if device_metrics.get("batteryLevel") is not None:
+            sensors["battery"] = device_metrics["batteryLevel"]
+        if device_metrics.get("voltage") is not None:
+            sensors["voltage"] = round(device_metrics["voltage"], 2)
+        if device_metrics.get("channelUtilization") is not None:
+            sensors["channel_utilization"] = round(
+                device_metrics["channelUtilization"], 1
+            )
+        if device_metrics.get("airUtilTx") is not None:
+            sensors["air_util_tx"] = round(device_metrics["airUtilTx"], 1)
+        if device_metrics.get("uptimeSeconds") is not None:
+            sensors["uptime"] = device_metrics["uptimeSeconds"]
 
-    # Channel list from the interface.
-    if iface is not None:
-        try:
-            node_info = iface.getMyNodeInfo()
-            if node_info:
-                # Try to get serial number.
-                hw = node_info.get("user", {})
+        # Packet counters from LocalStats telemetry (stored in conn itself now).
+        local_stats = my_info.get("localStats", {})
+        if local_stats.get("numPacketsTx") is not None:
+            sensors["packets_tx"] = local_stats["numPacketsTx"]
+        if local_stats.get("numPacketsRx") is not None:
+            sensors["packets_rx"] = local_stats["numPacketsRx"]
+        if local_stats.get("numPacketsRxBad") is not None:
+            sensors["packets_bad"] = local_stats["numPacketsRxBad"]
+        if local_stats.get("numTxRelay") is not None:
+            sensors["packets_relayed"] = local_stats["numTxRelay"]
+
+        gateways.append({
+            "entry_id": entry_id,
+            "name": name,
+            "address": address,
+            "model": model,
+            "firmware": firmware,
+            "sensors": sensors,
+            "connection_state": conn.state.value,
+        })
+
+    connection.send_result(msg["id"], gateways)
                 if hw.get("macaddr"):
                     serial = hw["macaddr"]
         except Exception:  # noqa: BLE001

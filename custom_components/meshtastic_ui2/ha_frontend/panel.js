@@ -218,9 +218,9 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   async _loadGateways() {
-    const result = await this._wsCommand("meshtastic_ui/gateways");
+    const result = await this._wsCommand("meshtastic_ui2/gateways");
     if (result) {
-      this._gateways = result.gateways || [];
+      this._gateways = result || [];
       if (this._gateways.length > 0) {
         const gw = this._gateways[0];
         if (gw.node_id) this._localNodeId = gw.node_id;
@@ -243,7 +243,7 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   async _loadMessages() {
-    const result = await this._wsCommand("meshtastic_ui/messages");
+    const result = await this._wsCommand("meshtastic_ui2/messages");
     if (result) {
       this._messages = result.messages || {};
       // Merge message channels with gateway-derived channels.
@@ -256,7 +256,7 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   async _loadNodes() {
-    const result = await this._wsCommand("meshtastic_ui/nodes");
+    const result = await this._wsCommand("meshtastic_ui2/nodes");
     if (result) {
       this._nodes = result.nodes || {};
       this._favoriteNodes = result.favorite_nodes || [];
@@ -265,22 +265,22 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   async _loadWaypoints() {
-    const result = await this._wsCommand("meshtastic_ui/get_waypoints");
+    const result = await this._wsCommand("meshtastic_ui2/get_waypoints");
     if (result) this._waypoints = result.waypoints || {};
   }
 
   async _loadTraceroutes() {
-    const result = await this._wsCommand("meshtastic_ui/get_traceroutes");
+    const result = await this._wsCommand("meshtastic_ui2/get_traceroutes");
     if (result) this._traceroutes = result.traceroutes || {};
   }
 
   async _loadNotificationPrefs() {
-    const result = await this._wsCommand("meshtastic_ui/get_notification_prefs");
+    const result = await this._wsCommand("meshtastic_ui2/get_notification_prefs");
     if (result) this._notificationPrefs = result;
   }
 
   async _loadTimeSeries() {
-    const result = await this._wsCommand("meshtastic_ui/get_timeseries", { window: this._chartWindow });
+    const result = await this._wsCommand("meshtastic_ui2/get_timeseries", { window: this._chartWindow });
     if (result?.timeseries) {
       this._timeSeries = result.timeseries;
       this._tsBucketInterval = result.bucketInterval || 10;
@@ -308,7 +308,7 @@ class MeshtasticUiPanel extends LitElement {
     if (!this._unsubscribeFn) {
       conn.subscribeMessage(
         (event) => this._handleRealtimeMessage(event),
-        { type: "meshtastic_ui/subscribe" }
+        { type: "meshtastic_ui2/subscribe" }
       )
       .then(safeThen("_unsubscribeFn"))
       .catch((err) => console.warn("Subscribe failed:", err));
@@ -317,7 +317,7 @@ class MeshtasticUiPanel extends LitElement {
     if (!this._unsubNodesFn) {
       conn.subscribeMessage(
         (event) => this._handleNodeUpdate(event),
-        { type: "meshtastic_ui/subscribe_nodes" }
+        { type: "meshtastic_ui2/subscribe_nodes" }
       )
       .then(safeThen("_unsubNodesFn"))
       .catch((err) => console.warn("Subscribe nodes failed:", err));
@@ -326,7 +326,7 @@ class MeshtasticUiPanel extends LitElement {
     if (!this._unsubDeliveryFn) {
       conn.subscribeMessage(
         (event) => this._handleDeliveryStatus(event),
-        { type: "meshtastic_ui/subscribe_delivery" }
+        { type: "meshtastic_ui2/subscribe_delivery" }
       )
       .then(safeThen("_unsubDeliveryFn"))
       .catch((err) => console.warn("Subscribe delivery failed:", err));
@@ -335,7 +335,7 @@ class MeshtasticUiPanel extends LitElement {
     if (!this._unsubWaypointsFn) {
       conn.subscribeMessage(
         (event) => this._handleWaypointUpdate(event),
-        { type: "meshtastic_ui/subscribe_waypoints" }
+        { type: "meshtastic_ui2/subscribe_waypoints" }
       )
       .then(safeThen("_unsubWaypointsFn"))
       .catch((err) => console.warn("Subscribe waypoints failed:", err));
@@ -344,7 +344,7 @@ class MeshtasticUiPanel extends LitElement {
     if (!this._unsubTraceroutesFn) {
       conn.subscribeMessage(
         (event) => this._handleTracerouteResult(event),
-        { type: "meshtastic_ui/subscribe_traceroutes" }
+        { type: "meshtastic_ui2/subscribe_traceroutes" }
       )
       .then(safeThen("_unsubTraceroutesFn"))
       .catch((err) => console.warn("Subscribe traceroutes failed:", err));
@@ -490,7 +490,7 @@ class MeshtasticUiPanel extends LitElement {
       data.channel = parseInt(conversation, 10) || 0;
     }
     if (reply_id != null) data.reply_id = reply_id;
-    const result = await this._wsCommand("meshtastic_ui/send_message", data);
+    const result = await this._wsCommand("meshtastic_ui2/send_message", data);
     if (result?.packet_id && !this._deliveryStatuses[result.packet_id]) {
       this._deliveryStatuses = {
         ...this._deliveryStatuses,
@@ -528,7 +528,7 @@ class MeshtasticUiPanel extends LitElement {
         }
       }, 30000);
 
-      const result = await this._wsCommand("meshtastic_ui/call_service", {
+      const result = await this._wsCommand("meshtastic_ui2/call_service", {
         service: "trace_route",
         service_data: { destination: nodeId },
       });
@@ -539,7 +539,7 @@ class MeshtasticUiPanel extends LitElement {
       }
     } else if (action === "request-position") {
       this._pendingPosition = nodeId;
-      const result = await this._wsCommand("meshtastic_ui/call_service", {
+      const result = await this._wsCommand("meshtastic_ui2/call_service", {
         service: "request_position",
         service_data: { destination: nodeId },
       });
@@ -549,7 +549,7 @@ class MeshtasticUiPanel extends LitElement {
       if (this._nodeDialogId) this._showNodeDialogFeedback(msg);
     } else if (action === "request-nodeinfo") {
       this._pendingNodeinfo = nodeId;
-      const result = await this._wsCommand("meshtastic_ui/call_service", {
+      const result = await this._wsCommand("meshtastic_ui2/call_service", {
         service: "request_nodeinfo",
         service_data: { destination: nodeId },
       });
@@ -558,7 +558,7 @@ class MeshtasticUiPanel extends LitElement {
       if (nodesTab) nodesTab.showFeedback(msg);
       if (this._nodeDialogId) this._showNodeDialogFeedback(msg);
     } else if (action === "favorite" || action === "unfavorite") {
-      const result = await this._wsCommand("meshtastic_ui/node_admin", {
+      const result = await this._wsCommand("meshtastic_ui2/node_admin", {
         node_id: nodeId, action,
       });
       if (result?.success) {
@@ -570,7 +570,7 @@ class MeshtasticUiPanel extends LitElement {
       }
       if (nodesTab) nodesTab.showFeedback(result?.success ? (action === "favorite" ? "Added to favorites" : "Removed from favorites") : "Action failed");
     } else if (action === "ignore" || action === "unignore") {
-      const result = await this._wsCommand("meshtastic_ui/node_admin", {
+      const result = await this._wsCommand("meshtastic_ui2/node_admin", {
         node_id: nodeId, action,
       });
       if (result?.success) {
@@ -582,7 +582,7 @@ class MeshtasticUiPanel extends LitElement {
       }
       if (nodesTab) nodesTab.showFeedback(result?.success ? (action === "ignore" ? "Node ignored" : "Node unignored") : "Action failed");
     } else if (action === "remove") {
-      const result = await this._wsCommand("meshtastic_ui/node_admin", {
+      const result = await this._wsCommand("meshtastic_ui2/node_admin", {
         node_id: nodeId, action: "remove",
       });
       if (result?.success) {
@@ -599,7 +599,7 @@ class MeshtasticUiPanel extends LitElement {
 
   async _onWaypointCreate(e) {
     const { latitude, longitude, name, description, expire } = e.detail;
-    await this._wsCommand("meshtastic_ui/send_waypoint", {
+    await this._wsCommand("meshtastic_ui2/send_waypoint", {
       latitude, longitude, name, description, expire,
     });
   }
@@ -1292,7 +1292,7 @@ class MeshtasticUiPanel extends LitElement {
   }
 
   async _saveNotificationPrefs() {
-    await this._wsCommand("meshtastic_ui/set_notification_prefs", this._notificationPrefs);
+    await this._wsCommand("meshtastic_ui2/set_notification_prefs", this._notificationPrefs);
     this._showNotificationModal = false;
   }
 }

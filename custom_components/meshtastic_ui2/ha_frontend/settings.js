@@ -216,7 +216,7 @@ export class MeshSettingsTab extends LitElement {
     this._error = null;
     this.requestUpdate();
 
-    const result = await this._ws("meshtastic_ui/get_config");
+    const result = await this._ws("meshtastic_ui2/get_config");
     if (result) {
       this._config = result;
     } else {
@@ -415,7 +415,7 @@ class MeshSettingsLora extends LitElement {
     this._saving = true;
     this.requestUpdate();
 
-    const result = await this.wsCommand("meshtastic_ui/set_config", {
+    const result = await this.wsCommand("meshtastic_ui2/set_config", {
       section: "lora",
       values: this._draft,
     });
@@ -648,7 +648,7 @@ class MeshSettingsChannels extends LitElement {
       settings.psk = draft.psk;
     }
 
-    const result = await this.wsCommand("meshtastic_ui/set_channel", {
+    const result = await this.wsCommand("meshtastic_ui2/set_channel", {
       index,
       settings,
     });
@@ -817,7 +817,7 @@ class MeshSettingsUser extends LitElement {
     this._saving = true;
     this.requestUpdate();
 
-    const result = await this.wsCommand("meshtastic_ui/set_owner", {
+    const result = await this.wsCommand("meshtastic_ui2/set_owner", {
       long_name: this._draft.longName || undefined,
       short_name: this._draft.shortName || undefined,
       is_licensed: this._draft.isLicensed,
@@ -1025,7 +1025,7 @@ class MeshSettingsActions extends LitElement {
     this._feedback = "";
     this.requestUpdate();
 
-    const result = await this.wsCommand("meshtastic_ui/device_action", {
+    const result = await this.wsCommand("meshtastic_ui2/device_action", {
       action: action.id,
     });
 
@@ -1101,7 +1101,7 @@ class ConfigSectionPanel extends LitElement {
     this._saving = true;
     this.requestUpdate();
 
-    const result = await this.wsCommand("meshtastic_ui/set_config", {
+    const result = await this.wsCommand("meshtastic_ui2/set_config", {
       section: this._section,
       values: this._draft,
     });
@@ -1738,7 +1738,7 @@ class MeshSettingsSecurity extends ConfigSectionPanel {
     const { public_key, private_key, admin_key, ...values } = this._draft;
     this._saving = true;
     this.requestUpdate();
-    const result = await this.wsCommand("meshtastic_ui/set_config", {
+    const result = await this.wsCommand("meshtastic_ui2/set_config", {
       section: this._section,
       values,
     });

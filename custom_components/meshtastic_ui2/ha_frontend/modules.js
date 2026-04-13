@@ -113,7 +113,7 @@ class ModuleConfigPanel extends LitElement {
     this._saving = true;
     this.requestUpdate();
 
-    const result = await this.wsCommand("meshtastic_ui/set_config", {
+    const result = await this.wsCommand("meshtastic_ui2/set_config", {
       section: this._section,
       values: this._draft,
     });

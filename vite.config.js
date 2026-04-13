@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 
-const VENDOR_DIR = "custom_components/meshtastic_ui/ha_frontend/vendor";
+const VENDOR_DIR = "custom_components/meshtastic_ui2/ha_frontend/vendor";
 
 export default defineConfig({
   build: {

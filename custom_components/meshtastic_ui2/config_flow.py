@@ -42,9 +42,6 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 1: Choose connection type."""
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
-
         if user_input is not None:
             self._connection_type = user_input[CONF_CONNECTION_TYPE]
             if self._connection_type == "tcp":
@@ -73,9 +70,6 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
         """Handle Bluetooth discovery of a Meshtastic device."""
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
-
         self._discovered_address = discovery_info.address
         self._discovered_name = discovery_info.name or "Meshtastic"
 
@@ -89,14 +83,20 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Confirm Bluetooth discovery."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(
-                title=f"Meshtastic (BLE {self._discovered_name})",
-                data={
-                    CONF_CONNECTION_TYPE: "ble",
-                    CONF_BLE_ADDRESS: self._discovered_address,
-                },
-            )
+            node_id = await self._async_validate_ble(self._discovered_address)
+            if node_id:
+                await self.async_set_unique_id(node_id)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title=f"Meshtastic ({self._discovered_name})",
+                    data={
+                        CONF_CONNECTION_TYPE: "ble",
+                        CONF_BLE_ADDRESS: self._discovered_address,
+                    },
+                )
+            errors["base"] = "cannot_connect"
 
         return self.async_show_form(
             step_id="bluetooth_confirm",
@@ -104,6 +104,7 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
                 "name": self._discovered_name,
                 "address": self._discovered_address,
             },
+            errors=errors,
         )
 
     async def async_step_tcp(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -114,10 +115,12 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
             hostname = user_input[CONF_TCP_HOSTNAME]
             port = user_input.get(CONF_TCP_PORT, DEFAULT_TCP_PORT)
 
-            error = await self._async_validate_tcp(hostname, port)
-            if error:
-                errors["base"] = error
+            node_id = await self._async_validate_tcp(hostname, port)
+            if not node_id:
+                errors["base"] = "cannot_connect"
             else:
+                await self.async_set_unique_id(node_id)
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=f"Meshtastic ({hostname})",
                     data={
@@ -145,10 +148,12 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             dev_path = user_input[CONF_SERIAL_DEV_PATH]
 
-            error = await self._async_validate_serial(dev_path)
-            if error:
-                errors["base"] = error
+            node_id = await self._async_validate_serial(dev_path)
+            if not node_id:
+                errors["base"] = "cannot_connect"
             else:
+                await self.async_set_unique_id(node_id)
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=f"Meshtastic ({dev_path})",
                     data={
@@ -182,10 +187,12 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
             if address == MANUAL_ENTRY:
                 return await self.async_step_ble_manual()
 
-            error = await self._async_validate_ble(address)
-            if error:
-                errors["base"] = error
+            node_id = await self._async_validate_ble(address)
+            if not node_id:
+                errors["base"] = "cannot_connect"
             else:
+                await self.async_set_unique_id(node_id)
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=f"Meshtastic (BLE {address})",
                     data={
@@ -227,10 +234,12 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             address = user_input[CONF_BLE_ADDRESS]
 
-            error = await self._async_validate_ble(address)
-            if error:
-                errors["base"] = error
+            node_id = await self._async_validate_ble(address)
+            if not node_id:
+                errors["base"] = "cannot_connect"
             else:
+                await self.async_set_unique_id(node_id)
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=f"Meshtastic (BLE {address})",
                     data={
@@ -250,61 +259,64 @@ class MeshtasticUiConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def _async_validate_tcp(self, hostname: str, port: int) -> str | None:
-        """Test a TCP connection. Returns error key or None on success."""
+        """Test a TCP connection. Returns node_id or None on failure."""
         try:
-            await self.hass.async_add_executor_job(
+            return await self.hass.async_add_executor_job(
                 self._test_tcp_connection, hostname, port
             )
         except Exception as err:
             _LOGGER.debug("TCP validation failed: %s", err)
-            return "cannot_connect"
-        return None
+            return None
 
     async def _async_validate_serial(self, dev_path: str) -> str | None:
-        """Test a serial connection. Returns error key or None on success."""
+        """Test a serial connection. Returns node_id or None on failure."""
         try:
-            await self.hass.async_add_executor_job(
+            return await self.hass.async_add_executor_job(
                 self._test_serial_connection, dev_path
             )
         except Exception as err:
             _LOGGER.debug("Serial validation failed: %s", err)
-            return "cannot_connect"
-        return None
+            return None
 
     async def _async_validate_ble(self, address: str) -> str | None:
-        """Test a BLE connection. Returns error key or None on success."""
+        """Test a BLE connection. Returns node_id or None on failure."""
         try:
-            await self.hass.async_add_executor_job(
+            return await self.hass.async_add_executor_job(
                 self._test_ble_connection, address
             )
         except Exception as err:
             _LOGGER.debug("BLE validation failed: %s", err)
-            return "cannot_connect"
-        return None
+            return None
 
     @staticmethod
-    def _test_tcp_connection(hostname: str, port: int) -> None:
+    def _test_tcp_connection(hostname: str, port: int) -> str:
         """Try connecting via TCP (runs in executor)."""
         from meshtastic.tcp_interface import TCPInterface
 
         iface = TCPInterface(hostname=hostname, portNumber=port)
+        node_id = iface.myId
         iface.close()
+        return node_id
 
     @staticmethod
-    def _test_serial_connection(dev_path: str) -> None:
+    def _test_serial_connection(dev_path: str) -> str:
         """Try connecting via serial (runs in executor)."""
         from meshtastic.serial_interface import SerialInterface
 
         iface = SerialInterface(devPath=dev_path)
+        node_id = iface.myId
         iface.close()
+        return node_id
 
     @staticmethod
-    def _test_ble_connection(address: str) -> None:
+    def _test_ble_connection(address: str) -> str:
         """Try connecting via BLE (runs in executor)."""
         from meshtastic.ble_interface import BLEInterface
 
         iface = BLEInterface(address=address)
+        node_id = iface.myId
         iface.close()
+        return node_id
 
     async def _async_detect_serial_ports(self) -> str:
         """Auto-detect Meshtastic serial ports."""

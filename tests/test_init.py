@@ -11,7 +11,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from custom_components.meshtastic_ui import (
+from custom_components.meshtastic_ui2 import (
     _extract_node_data,
     _handle_delivery_ack,
     _handle_text_message,
@@ -19,14 +19,14 @@ from custom_components.meshtastic_ui import (
     _handle_waypoint,
     _num_to_id,
 )
-from custom_components.meshtastic_ui.const import (
+from custom_components.meshtastic_ui2.const import (
     DOMAIN,
     SIGNAL_DELIVERY_STATUS,
     SIGNAL_NEW_MESSAGE,
     SIGNAL_TRACEROUTE_RESULT,
     SIGNAL_WAYPOINT_UPDATE,
 )
-from custom_components.meshtastic_ui.store import MeshtasticUiStore
+from custom_components.meshtastic_ui2.store import MeshtasticUiStore
 
 
 # ---------------------------------------------------------------------------

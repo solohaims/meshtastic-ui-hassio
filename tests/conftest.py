@@ -9,16 +9,16 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.meshtastic_ui.connection import (
+from custom_components.meshtastic_ui2.connection import (
     ConnectionState,
     ConnectionType,
     MeshtasticConnection,
 )
-from custom_components.meshtastic_ui.const import (
+from custom_components.meshtastic_ui2.const import (
     DOMAIN,
     TS_MAX_POINTS,
 )
-from custom_components.meshtastic_ui.store import MeshtasticUiStore
+from custom_components.meshtastic_ui2.store import MeshtasticUiStore
 
 
 @pytest.fixture(autouse=True)

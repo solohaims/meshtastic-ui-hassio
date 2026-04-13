@@ -8,11 +8,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.meshtastic_ui.sensor import (
+from custom_components.meshtastic_ui2.sensor import (
     MeshActiveNodesSensor,
     MeshMessagesTodaySensor,
 )
-from custom_components.meshtastic_ui.store import MeshtasticUiStore
+from custom_components.meshtastic_ui2.store import MeshtasticUiStore
 
 
 class TestMeshMessagesTodaySensor:

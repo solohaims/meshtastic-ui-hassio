@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Meshtastic UI",
+        "title": "Meshtastic UI 2",
         "description": "Connect directly to your Meshtastic radio. Choose a connection type.",
         "data": {
           "connection_type": "Connection type"
@@ -46,7 +46,7 @@
       "cannot_connect": "Unable to connect to the radio. Check the address and ensure the radio is powered on."
     },
     "abort": {
-      "already_configured": "Meshtastic UI is already configured."
+      "already_configured": "Meshtastic UI 2 is already configured."
     }
   }
 }

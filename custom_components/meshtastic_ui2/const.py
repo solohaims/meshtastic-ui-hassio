@@ -1,9 +1,9 @@
 """Constants for Meshtastic UI integration."""
 
-DOMAIN = "meshtastic_ui"
+DOMAIN = "meshtastic_ui2"
 
 # Storage
-STORAGE_KEY = "meshtastic_ui.messages"
+STORAGE_KEY = "meshtastic_ui2.messages"
 STORAGE_VERSION = 1
 SAVE_DELAY = 30  # seconds
 
@@ -23,7 +23,7 @@ TS_POINTS = 360          # data points returned to frontend per query
 TS_MAX_POINTS = 60480    # 7 days of raw 10s data (60480 × 10s = 604800s)
 TS_FLUSH_SECONDS = 10    # seconds between flushes
 TS_PERSIST_SECONDS = 300  # save time-series to disk every 5 minutes
-TS_STORAGE_KEY = "meshtastic_ui.timeseries"
+TS_STORAGE_KEY = "meshtastic_ui2.timeseries"
 TS_STORAGE_VERSION = 1
 
 # Internal dispatcher signals

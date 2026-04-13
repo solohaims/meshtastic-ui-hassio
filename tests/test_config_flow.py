@@ -9,7 +9,7 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.meshtastic_ui.const import (
+from custom_components.meshtastic_ui2.const import (
     CONF_BLE_ADDRESS,
     CONF_CONNECTION_TYPE,
     CONF_SERIAL_DEV_PATH,
@@ -60,7 +60,7 @@ async def test_tcp_step_success(hass: HomeAssistant):
     )
 
     with patch(
-        "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_tcp_connection"
+        "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_tcp_connection"
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -85,7 +85,7 @@ async def test_tcp_step_failure(hass: HomeAssistant):
     )
 
     with patch(
-        "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_tcp_connection",
+        "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_tcp_connection",
         side_effect=Exception("Connection refused"),
     ):
         result = await hass.config_entries.flow.async_configure(
@@ -108,10 +108,10 @@ async def test_serial_step_success(hass: HomeAssistant):
 
     with (
         patch(
-            "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_serial_connection"
+            "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_serial_connection"
         ),
         patch(
-            "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._find_serial_ports",
+            "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._find_serial_ports",
             return_value=["/dev/ttyUSB0"],
         ),
     ):
@@ -138,11 +138,11 @@ async def test_serial_step_failure(hass: HomeAssistant):
 
     with (
         patch(
-            "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_serial_connection",
+            "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_serial_connection",
             side_effect=Exception("Device not found"),
         ),
         patch(
-            "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._find_serial_ports",
+            "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._find_serial_ports",
             return_value=[],
         ),
     ):
@@ -166,10 +166,10 @@ async def test_ble_step_success(hass: HomeAssistant):
 
     with (
         patch(
-            "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_ble_connection"
+            "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_ble_connection"
         ),
         patch(
-            "custom_components.meshtastic_ui.config_flow.async_discovered_service_info",
+            "custom_components.meshtastic_ui2.config_flow.async_discovered_service_info",
             return_value=[],
         ),
     ):
@@ -197,11 +197,11 @@ async def test_ble_step_failure(hass: HomeAssistant):
 
     with (
         patch(
-            "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_ble_connection",
+            "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_ble_connection",
             side_effect=Exception("BLE error"),
         ),
         patch(
-            "custom_components.meshtastic_ui.config_flow.async_discovered_service_info",
+            "custom_components.meshtastic_ui2.config_flow.async_discovered_service_info",
             return_value=[],
         ),
     ):
@@ -228,10 +228,10 @@ async def test_ble_step_with_discovered_devices(hass: HomeAssistant):
 
     with (
         patch(
-            "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_ble_connection"
+            "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_ble_connection"
         ),
         patch(
-            "custom_components.meshtastic_ui.config_flow.async_discovered_service_info",
+            "custom_components.meshtastic_ui2.config_flow.async_discovered_service_info",
             return_value=[info],
         ),
     ):
@@ -305,7 +305,7 @@ async def test_already_configured(hass: HomeAssistant):
     )
 
     with patch(
-        "custom_components.meshtastic_ui.config_flow.MeshtasticUiConfigFlow._test_tcp_connection"
+        "custom_components.meshtastic_ui2.config_flow.MeshtasticUiConfigFlow._test_tcp_connection"
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],

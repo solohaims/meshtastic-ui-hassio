@@ -357,7 +357,7 @@ export class MeshRadioTab extends LitElement {
   }
 
   _renderGatewayCard(gw) {
-    const isConnected = gw.state?.toLowerCase() === "connected" || gw.state?.toLowerCase() === "on";
+    const isConnected = (gw.connection_state || gw.state)?.toLowerCase() === "connected" || (gw.connection_state || gw.state)?.toLowerCase() === "on";
     const sensors = gw.sensors || {};
     const channels = gw.channels || [];
 
@@ -367,9 +367,9 @@ export class MeshRadioTab extends LitElement {
           <div class="status-dot ${isConnected ? "connected" : "disconnected"}"></div>
           <div class="gateway-name">${gw.name}</div>
           <div class="gateway-meta">
+            ${gw.address ? html`<span>${gw.address}</span>` : ""}
             ${gw.model ? html`<span>${gw.model}</span>` : ""}
             ${gw.firmware ? html`<span>v${gw.firmware}</span>` : ""}
-            ${gw.serial ? html`<span>${gw.serial}</span>` : ""}
             ${sensors.uptime ? html`<span>Up ${formatUptime(sensors.uptime)}</span>` : ""}
           </div>
         </div>

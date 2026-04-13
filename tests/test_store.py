@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from custom_components.meshtastic_ui.const import MAX_CHANNEL_MESSAGES, MAX_DM_MESSAGES
-from custom_components.meshtastic_ui.store import MeshtasticUiStore, normalize_node_id
+from custom_components.meshtastic_ui2.const import MAX_CHANNEL_MESSAGES, MAX_DM_MESSAGES
+from custom_components.meshtastic_ui2.store import MeshtasticUiStore, normalize_node_id
 
 
 # ---------------------------------------------------------------------------
